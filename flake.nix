@@ -49,6 +49,9 @@
           
           # Shortcut: nix build .#iso
           iso = self.nixosConfigurations.df-forensics-iso.config.system.build.isoImage;
+
+          # Fast prototyping VM shortcut: nix build .#vm
+          vm = self.nixosConfigurations.df-forensics-iso.config.system.build.vm;
         }
       );
 

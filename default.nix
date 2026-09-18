@@ -11,6 +11,10 @@ in
   # nix-build -A iso
   iso = nixos.config.system.build.isoImage;
 
+  # Fast prototyping VM launcher (skips squashfs compression and ISO packaging):
+  # nix-build -A vm -o result-vm
+  vm = nixos.config.system.build.vm;
+
   # Standard packages (ingesting from local sibling repos if available)
   dfdisk = if builtins.pathExists ../dfdisk/package.nix
            then pkgs.callPackage ../dfdisk/package.nix { }

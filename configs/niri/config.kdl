@@ -3,6 +3,7 @@
 
 // --- Autostart ---
 spawn-at-startup "noctalia"
+spawn-at-startup "kitty"
 spawn-at-startup "sh" "-c" "sleep 1 && noctalia msg wallpaper-set /home/nixos/Pictures/DF_K-BG02.png"
 
 config-notification {

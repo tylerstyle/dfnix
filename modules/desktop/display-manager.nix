@@ -105,15 +105,18 @@ EOF
     # Use -l flag to prevent upstream niri-session from re-spawning a login shell loop
     niri-session -l
     EXIT_CODE=$?
-
-    # Auto-retry once after 1s if transient DRM/Wayland initialization hiccup occurred
-    if [ $EXIT_CODE -ne 0 ]; then
-      echo ">>> Transient startup issue (exit code $EXIT_CODE), retrying in 1s..."
-      sleep 1
-      niri-session -l
-      EXIT_CODE=$?
-    fi
     set -e
+
+    # If Niri failed (e.g. timeout due to missing 3D GPU acceleration, or crash)
+    if [ $EXIT_CODE -ne 0 ]; then
+      echo ""
+      echo ">>> WARNING: Niri Wayland session failed or timed out (exit code $EXIT_CODE)."
+      echo ">>> (Note: Niri requires OpenGL 3.3 / GLES 2.0 3D hardware acceleration)."
+      echo ">>> Automatically launching universal XFCE desktop fallback in 2 seconds..."
+      sleep 2 || true
+      rm -f /tmp/.dfnix-session-started
+      exec ${startXfce}/bin/start-xfce
+    fi
 
     clear
     ${dfnixBanner}/bin/dfnix-help

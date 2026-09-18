@@ -29,14 +29,19 @@ with lib;
     };
 
     # Explicitly ensure systemd user service for Niri receives NIRI_CONFIG
-    systemd.user.services.niri.environment = {
-      NIRI_CONFIG = "/home/nixos/.config/niri/config.kdl";
-      XDG_CURRENT_DESKTOP = "Niri";
-      NIXOS_OZONE_WL = "1";
-      QT_QPA_PLATFORM = "wayland;xcb";
-      MOZ_ENABLE_WAYLAND = "1";
-      XKB_DEFAULT_LAYOUT = "de,us";
-      XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
+    systemd.user.services.niri = {
+      environment = {
+        NIRI_CONFIG = "/home/nixos/.config/niri/config.kdl";
+        XDG_CURRENT_DESKTOP = "Niri";
+        NIXOS_OZONE_WL = "1";
+        QT_QPA_PLATFORM = "wayland;xcb";
+        MOZ_ENABLE_WAYLAND = "1";
+        XKB_DEFAULT_LAYOUT = "de,us";
+        XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
+      };
+      serviceConfig = {
+        TimeoutStartSec = "10s";
+      };
     };
 
     # Completely disable GNOME Keyring to prevent "Choose password for new keyring" dialogs on live ISO
