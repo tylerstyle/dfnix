@@ -29,7 +29,8 @@ gestures {
 input {
     keyboard {
         xkb {
-            // Evaluated via org.freedesktop.locale1 / NixOS settings
+            layout "de,us"
+            options "grp:alt_shift_toggle"
         }
         numlock
     }
@@ -190,11 +191,13 @@ binds {
 
     // --- Core Applications ---
     Mod+Return      { spawn "kitty"; }
+    Mod+T           { spawn "kitty"; }
+    Ctrl+Alt+T      { spawn "kitty"; }
     Mod+E           { spawn "dolphin"; }
     Mod+B           { spawn "firefox"; }
     Mod+D           { spawn "kitty" "--title" "dfdisk - Forensic Imager" "-e" "sudo" "dfdisk"; }
     Mod+M           { spawn "kitty" "--title" "dfmount - Forensic Storage Manager" "-e" "sudo" "dfmount"; }
-    Mod+N           { spawn "kitty" "--title" "df-net - Forensic Network Operations" "-e" "sudo" "df-net"; }
+    Mod+N           { spawn "kitty" "--title" "dfnet - Forensic Network Operations" "-e" "sudo" "dfnet"; }
 
     // --- Window Actions ---
     Mod+Q           { close-window; }

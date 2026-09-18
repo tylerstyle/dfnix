@@ -6,9 +6,10 @@
   # ----------------------------------------------------------------------------
   image.baseName = lib.mkForce "dfnix-forensics";
   system.nixos.distroName = "dfnix";
+  system.nixos.label = "live";
   isoImage = {
     volumeID = "DFNIX_LIVE";
-    appendToMenuLabel = " Forensic Field OS (Niri/XFCE)";
+    appendToMenuLabel = " Forensic Acquisition OS (Copy-to-RAM)";
 
     # Hybrid bootloader: boots on both modern UEFI and legacy BIOS
     makeBiosBootable = true;

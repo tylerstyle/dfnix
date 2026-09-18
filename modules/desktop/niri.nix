@@ -23,6 +23,8 @@ with lib;
       QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
       MOZ_ENABLE_WAYLAND = "1";
       XDG_CURRENT_DESKTOP = "Niri";
+      XKB_DEFAULT_LAYOUT = "de,us";
+      XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
     };
 
     # 3. System packages required for Niri + Noctalia desktop
@@ -37,7 +39,17 @@ with lib;
       pavucontrol
       networkmanagerapplet
       libnotify
+      xinit
     ];
+
+    # 4. System-wide XDG configuration fallbacks (ensures Niri & Noctalia never launch unconfigured)
+    environment.etc = {
+      "xdg/niri/config.kdl".source = ../../configs/niri/config.kdl;
+      "xdg/niri/noctalia.kdl".source = ../../configs/niri/noctalia.kdl;
+      "xdg/noctalia/settings.json".source = ../../configs/noctalia/settings.json;
+      "xdg/noctalia/plugins.json".text = ''{"version":2,"states":{},"sources":[]}'';
+      "xdg/dfnix/wallpaper.png".source = ../../configs/assets/wallpaper.png;
+    };
 
     # 4. Deploy default Niri and Noctalia dotfiles for live examiner user
     system.activationScripts.dfnixNiriConfig = ''

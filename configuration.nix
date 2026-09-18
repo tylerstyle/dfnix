@@ -87,10 +87,20 @@ in
   services.xserver = {
     enable = true;
     xkb = {
-      layout = "de";
+      layout = "de,us";
+      options = "grp:alt_shift_toggle";
       variant = "";
     };
   };
+
+  # System fonts for Noctalia UI, Kitty terminal, and forensic glyphs
+  fonts.packages = with pkgs; [
+    noto-fonts
+    noto-fonts-cjk-sans
+    noto-fonts-color-emoji
+    nerd-fonts.fira-code
+    nerd-fonts.symbols-only
+  ];
 
   # Nix configuration (flakeless)
   nix.settings.experimental-features = [ "nix-command" ];
