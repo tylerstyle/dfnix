@@ -16,7 +16,7 @@
     makeUsbBootable = true;
 
     # Ultra-fast zstd decompression (>1.5GB/s) to accelerate boot
-    squashfsCompression = "zstd -Xcompression-level 19";
+    squashfsCompression = "zstd";
   };
 
   # ----------------------------------------------------------------------------
@@ -38,6 +38,8 @@
   ];
 
   boot.kernelParams = [
+    # Boot entirely into RAM (eliminates CD-ROM loopback LBA readahead errors on Zalman / virtual ODDs)
+    "copytoram"
     # USB initialization stability for legacy USB 2.0 drives on modern xHCI
     "usbcore.autosuspend=-1"
     "usbcore.initial_descriptor_timeout=2000"
