@@ -8,7 +8,7 @@ stdenv.mkDerivation rec {
     owner = "keydet89";
     repo = "RegRipper3.0";
     rev = "master";
-    hash = "sha256-W3U0Y99d8nB8Q7/f8pQp0Zf6P5Z7q9Q6B7o9E0s1K3A=";
+    hash = "sha256-J5D1RjcyTUnJw7c99V/QbrgFr9XWh21JCT8rbwrtFpA=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
