@@ -1,0 +1,18 @@
+# Nix build outputs
+result
+result-*
+*.iso
+*.img
+*.qcow2
+
+# Direnv & Editor backups
+.direnv/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary forensic test images
+scratch/
+test-*.raw
+test-*.img

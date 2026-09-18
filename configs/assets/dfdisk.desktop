@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=dfdisk Forensic Imager
+GenericName=Forensic Disk Imager & Rescue Tool
+Comment=Acquire E01/RAW forensic images, rescue failing disks with ddrescue, and verify hashes
+Exec=kitty --title "dfdisk - Forensic Imager" -e sudo dfdisk
+Icon=drive-harddisk-system
+Terminal=false
+Type=Application
+Categories=System;Forensics;Utility;
+Keywords=forensics;evidence;ddrescue;e01;imaging;disk;
+StartupNotify=true

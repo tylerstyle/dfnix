@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=df-mount Forensic Manager
+GenericName=Forensic Disk Mounter
+Comment=Mount evidence write-blocked with zero journal replay or unblock targets for dfdisk
+Exec=sudo df-mount-gui
+Icon=drive-harddisk-system
+Terminal=false
+Type=Application
+Categories=System;Forensics;Utility;
+Keywords=forensics;mount;writeblock;target;dfdisk;
+StartupNotify=true
