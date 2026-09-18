@@ -22,7 +22,10 @@
         dfdisk = dfdisk.packages.${prev.stdenv.hostPlatform.system}.default;
         
         # Dedicated Forensic Mounter & Target Unblocker
-        df-mount = final.callPackage ./pkgs/df-mount { };
+        dfmount = final.callPackage ./pkgs/dfmount { };
+
+        # Dedicated Forensic Network Operations & Triage
+        dfnet = final.callPackage ./pkgs/dfnet { };
 
         # Volatility 3 ISF generator
         dwarf2json = final.callPackage ./pkgs/dwarf2json { };
@@ -42,7 +45,7 @@
           };
         in
         {
-          inherit (pkgs) df-mount dwarf2json regripper;
+          inherit (pkgs) dfdisk dfmount dfnet dwarf2json regripper;
           
           # Shortcut: nix build .#iso
           iso = self.nixosConfigurations.df-forensics-iso.config.system.build.isoImage;
@@ -70,6 +73,7 @@
             ./modules/iso/live-iso.nix
             ./modules/hardware/write-blocking.nix
             ./modules/forensics/default.nix
+            ./modules/forensics/wine-xways.nix
             ./modules/desktop/niri.nix
             ./modules/desktop/xfce.nix
             ./modules/desktop/display-manager.nix
@@ -88,14 +92,24 @@
                   keywords = [ "forensics" "evidence" "ddrescue" "e01" "imaging" "disk" ];
                 })
                 (pkgs.makeDesktopItem {
-                  name = "df-mount-gui";
-                  desktopName = "df-mount Forensic Manager";
-                  genericName = "Forensic Disk Mounter";
-                  comment = "Safely mount evidence (0 journal writes) or unblock target drives for dfdisk";
-                  exec = "sudo df-mount-gui";
+                  name = "dfmount";
+                  desktopName = "dfmount Forensic Storage TUI";
+                  genericName = "Forensic Disk Mounter TUI";
+                  comment = "Mount evidence write-blocked with zero journal replay or unblock target drives";
+                  exec = "kitty --title 'dfmount - Forensic Storage Manager' -e sudo dfmount";
                   icon = "drive-harddisk-system";
                   categories = [ "System" "Utility" ];
                   keywords = [ "forensics" "mount" "writeblock" "target" "dfdisk" ];
+                })
+                (pkgs.makeDesktopItem {
+                  name = "dfnet";
+                  desktopName = "dfnet Network Triage";
+                  genericName = "Forensic Network Operations";
+                  comment = "MAC spoofing, static IP setup (nmtui), network share mounting, and raw disk reception";
+                  exec = "kitty --title 'dfnet - Forensic Network Operations' -e sudo dfnet";
+                  icon = "network-workgroup";
+                  categories = [ "System" "Network" ];
+                  keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" ];
                 })
               ];
             })

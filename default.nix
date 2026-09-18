@@ -13,8 +13,8 @@ in
 
   # Standard packages
   dfdisk = pkgs.callPackage ./pkgs/dfdisk { };
-  df-mount = pkgs.callPackage ./pkgs/df-mount { };
-  df-net = pkgs.callPackage ./pkgs/df-net { };
+  dfmount = pkgs.callPackage ./pkgs/dfmount { };
+  dfnet = pkgs.callPackage ./pkgs/dfnet { };
   dwarf2json = pkgs.callPackage ./pkgs/dwarf2json { };
   regripper = pkgs.callPackage ./pkgs/regripper { };
 

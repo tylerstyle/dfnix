@@ -4,10 +4,9 @@
   # ----------------------------------------------------------------------------
   # Live ISO Image Settings
   # ----------------------------------------------------------------------------
+  image.baseName = lib.mkForce "df-nix-forensics";
   isoImage = {
-    isoBaseName = "df-nix-forensics";
-    volumeLabel = "DFNIX_LIVE";
-    edition = "Field Forensics";
+    volumeID = "DFNIX_LIVE";
 
     # Hybrid bootloader: boots on both modern UEFI and legacy BIOS
     makeBiosBootable = true;

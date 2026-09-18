@@ -12,7 +12,26 @@ result-*
 *~
 .DS_Store
 
-# Temporary forensic test images
+# Temporary forensic test images & media
 scratch/
 test-*.raw
 test-*.img
+*.E01
+*.raw
+*.dd
+
+# Proprietary forensic binaries, templates & licenses (STRICTLY EXCLUDED)
+*.exe
+*.dll
+*.sys
+*.chm
+*.whs
+*.tpl
+*.cfg
+*.dat
+*.lic
+*.key
+Fallvorlage*
+xways*
+xwforensics*
+xwinvestigator*

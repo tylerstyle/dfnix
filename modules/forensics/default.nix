@@ -28,7 +28,7 @@ with lib;
       # Primary Forensic Imaging & Mounting Tools
       # ------------------------------------------------------------------------
       dfdisk                  # Examiner's high-speed TUI forensic imager
-      df-mount                # Forensic write-blocked mounter & target unblocker suite
+      dfmount                 # Forensic write-blocked mounter & target unblocker suite
       libewf                  # Expert Witness Compression Format tools (ewfacquire, ewfexport)
       dcfldd                  # Forensically enhanced dd with live hashing
       ddrescue                # GNU data recovery for damaged and failing media
@@ -41,7 +41,7 @@ with lib;
       # ------------------------------------------------------------------------
       sleuthkit               # The Sleuth Kit (fls, icat, mmls, fsstat, blkls)
       testdisk                # Partition recovery
-      qphotorec               # Graphical header-based file carver
+      testdisk-qt             # Graphical Qt header-based file carver (qphotorec)
       foremost                # File carving tool
       scalpel                 # Multi-threaded file carving
       bulk_extractor          # Stream-based feature extraction (emails, URLs, credit cards)
@@ -80,7 +80,7 @@ with lib;
       # ------------------------------------------------------------------------
       # Network Forensics, Recon & Remote Acquisition
       # ------------------------------------------------------------------------
-      df-net                  # Forensic network operations & MAC spoofer
+      dfnet                   # Forensic network operations & MAC spoofer
       macchanger              # MAC address spoofing / faking
       networkmanager          # Includes nmtui (interactive network TUI)
       arp-scan                # Local ARP network device discovery

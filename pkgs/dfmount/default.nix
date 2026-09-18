@@ -18,8 +18,8 @@ let
   ]);
 in
 stdenv.mkDerivation rec {
-  pname = "df-mount";
-  version = "0.1.0";
+  pname = "dfmount";
+  version = "0.2.0";
 
   src = ./.;
 
@@ -40,11 +40,7 @@ stdenv.mkDerivation rec {
 
     mkdir -p $out/bin $out/share/applications
 
-    # Install CLI wrapper
-    cp df-mount.sh $out/bin/df-mount
-    chmod +x $out/bin/df-mount
-
-    # Install TUI
+    # 1. Install primary TUI (curses, zero external deps)
     cp dfmount-tui.py $out/bin/dfmount
     chmod +x $out/bin/dfmount
 
@@ -56,7 +52,11 @@ stdenv.mkDerivation rec {
         coreutils
       ]}:$out/bin
 
-    wrapProgram $out/bin/df-mount \
+    # 2. Install CLI script
+    cp dfmount.sh $out/bin/dfmount-cli
+    chmod +x $out/bin/dfmount-cli
+
+    wrapProgram $out/bin/dfmount-cli \
       --prefix PATH : ${lib.makeBinPath [
         util-linux
         gawk
@@ -64,17 +64,18 @@ stdenv.mkDerivation rec {
         coreutils
       ]}
 
-    # Helper symlinks
-    ln -s $out/bin/df-mount $out/bin/df-status
-    ln -s $out/bin/df-mount $out/bin/df-unblock
-    ln -s $out/bin/df-mount $out/bin/df-target
-    ln -s $out/bin/df-mount $out/bin/df-umount
+    # Compatibility symlinks
+    ln -s $out/bin/dfmount-cli $out/bin/df-mount
+    ln -s $out/bin/dfmount-cli $out/bin/df-status
+    ln -s $out/bin/dfmount-cli $out/bin/df-unblock
+    ln -s $out/bin/dfmount-cli $out/bin/df-target
+    ln -s $out/bin/dfmount-cli $out/bin/df-umount
 
-    # Install GUI wrapper
-    cp df-mount-gui.py $out/bin/df-mount-gui
-    chmod +x $out/bin/df-mount-gui
+    # 3. Install GUI wrapper
+    cp dfmount-gui.py $out/bin/dfmount-gui
+    chmod +x $out/bin/dfmount-gui
 
-    wrapProgram $out/bin/df-mount-gui \
+    wrapProgram $out/bin/dfmount-gui \
       --prefix PATH : ${lib.makeBinPath [
         util-linux
         gawk
@@ -83,14 +84,14 @@ stdenv.mkDerivation rec {
       ]}:$out/bin \
       --prefix PYTHONPATH : "${pythonEnv}/${pythonEnv.sitePackages}"
 
-    # Desktop entry for GUI
-    cat > $out/share/applications/df-mount-gui.desktop <<EOF
+    # Desktop entry for dfmount TUI
+    cat > $out/share/applications/dfmount.desktop <<EOF
 [Desktop Entry]
 Version=1.0
-Name=df-mount Forensic Manager
+Name=dfmount Forensic Storage TUI
 GenericName=Forensic Disk Mounter
 Comment=Mount evidence write-blocked with zero journal replay or unblock target drives
-Exec=sudo df-mount-gui
+Exec=kitty --title "dfmount - Forensic Storage Manager" -e sudo dfmount
 Icon=drive-harddisk-system
 Terminal=false
 Type=Application
@@ -106,5 +107,6 @@ EOF
     license = licenses.mit;
     platforms = platforms.linux;
     maintainers = [ ];
+    mainProgram = "dfmount";
   };
 }

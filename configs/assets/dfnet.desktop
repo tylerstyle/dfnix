@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=dfnet Network Triage
+GenericName=Forensic Network Operations
+Comment=MAC spoofing, static IP setup (nmtui), network share mounting, and raw disk reception
+Exec=kitty --title "dfnet - Forensic Network Operations" -e sudo dfnet
+Icon=network-workgroup
+Terminal=false
+Type=Application
+Categories=System;Network;Forensics;Utility;
+Keywords=forensics;network;macchanger;nmtui;smb;nfs;
+StartupNotify=true

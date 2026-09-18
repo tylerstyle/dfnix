@@ -17,9 +17,6 @@ with lib;
       desktopManager.xfce = {
         enable = true;
         enableScreensaver = false;
-        thunarPlugins = with pkgs.xfce; [
-          thunar-archive-plugin
-        ];
       };
     };
 

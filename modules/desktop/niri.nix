@@ -29,7 +29,7 @@ with lib;
     environment.systemPackages = with pkgs; [
       noctalia
       kitty
-      dolphin
+      kdePackages.dolphin
       swaybg
       wl-clipboard
       cliphist

@@ -14,13 +14,13 @@ with lib;
   config = mkIf config.dfnix.desktop.displayManager.enable {
     services.displayManager = {
       defaultSession = lib.mkDefault "niri";
+      autoLogin = {
+        enable = true;
+        user = "nixos";
+      };
       sddm = {
         enable = true;
         wayland.enable = true;
-        autoLogin = {
-          enable = true;
-          user = "nixos";
-        };
       };
     };
 

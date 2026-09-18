@@ -19,7 +19,8 @@
         "overviewLayer": false,
         "pinnedApps": [
             "dfdisk.desktop",
-            "df-mount-gui.desktop",
+            "dfmount.desktop",
+            "dfnet.desktop",
             "kitty.desktop",
             "dolphin.desktop"
         ],
@@ -253,7 +254,8 @@
         "onlySameOutput": true,
         "pinnedApps": [
             "dfdisk.desktop",
-            "df-mount-gui.desktop",
+            "dfmount.desktop",
+            "dfnet.desktop",
             "kitty.desktop",
             "dolphin.desktop"
         ],

@@ -3,8 +3,8 @@
 let
   forensicsOverlay = final: prev: {
     dfdisk = final.callPackage ./pkgs/dfdisk { };
-    df-mount = final.callPackage ./pkgs/df-mount { };
-    df-net = final.callPackage ./pkgs/df-net { };
+    dfmount = final.callPackage ./pkgs/dfmount { };
+    dfnet = final.callPackage ./pkgs/dfnet { };
     dwarf2json = final.callPackage ./pkgs/dwarf2json { };
     regripper = final.callPackage ./pkgs/regripper { };
   };
@@ -18,6 +18,7 @@ in
     ./modules/iso/live-iso.nix
     ./modules/hardware/write-blocking.nix
     ./modules/forensics/default.nix
+    ./modules/forensics/wine-xways.nix
     ./modules/desktop/niri.nix
     ./modules/desktop/xfce.nix
     ./modules/desktop/display-manager.nix
@@ -30,10 +31,10 @@ in
   # System package links & desktop launcher items
   environment.systemPackages = with pkgs; [
     dfdisk
-    df-mount
-    df-net
+    dfmount
+    dfnet
     
-    # Desktop entries for TUI and GUI tools
+    # Desktop entries for TUI tools
     (makeDesktopItem {
       name = "dfdisk";
       desktopName = "dfdisk Forensic Imager";
@@ -55,11 +56,11 @@ in
       keywords = [ "forensics" "mount" "writeblock" "target" "dfdisk" ];
     })
     (makeDesktopItem {
-      name = "df-net";
-      desktopName = "df-net Network Triage";
+      name = "dfnet";
+      desktopName = "dfnet Network Triage";
       genericName = "Forensic Network Operations";
       comment = "MAC spoofing, static IP setup (nmtui), network share mounting, and raw disk reception";
-      exec = "kitty --title 'df-net - Forensic Network Operations' -e sudo df-net";
+      exec = "kitty --title 'dfnet - Forensic Network Operations' -e sudo dfnet";
       icon = "network-workgroup";
       categories = [ "System" "Network" ];
       keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" ];
