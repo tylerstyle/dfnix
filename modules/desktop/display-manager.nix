@@ -20,14 +20,16 @@ with lib;
       };
       sddm = {
         enable = true;
-        wayland.enable = true;
+        # Use battle-tested X11 greeter for universal GPU support (Intel/AMD/Nvidia/VESA)
+        # Session itself launches Niri natively under Wayland
+        wayland.enable = false;
       };
     };
 
     # Live ISO user privileges
     users.users.nixos = {
       isNormalUser = true;
-      extraGroups = [ "wheel" "disk" "storage" "networkmanager" "video" "audio" ];
+      extraGroups = [ "wheel" "disk" "storage" "networkmanager" "video" "audio" "input" ];
       description = "Forensic Field Examiner";
     };
 

@@ -86,7 +86,7 @@
                   desktopName = "dfdisk Forensic Imager";
                   genericName = "Forensic Disk Imaging & Rescue TUI";
                   comment = "Acquire E01/RAW images, rescue failing disks with ddrescue, and verify hashes";
-                  exec = "kitty --title 'dfdisk - Forensic Imager' -e sudo dfdisk";
+                  exec = "kitty --title \"dfdisk - Forensic Imager\" -e sudo dfdisk";
                   icon = "drive-harddisk-system";
                   categories = [ "System" "Utility" ];
                   keywords = [ "forensics" "evidence" "ddrescue" "e01" "imaging" "disk" ];
@@ -96,7 +96,7 @@
                   desktopName = "dfmount Forensic Storage TUI";
                   genericName = "Forensic Disk Mounter TUI";
                   comment = "Mount evidence write-blocked with zero journal replay or unblock target drives";
-                  exec = "kitty --title 'dfmount - Forensic Storage Manager' -e sudo dfmount";
+                  exec = "kitty --title \"dfmount - Forensic Storage Manager\" -e sudo dfmount";
                   icon = "drive-harddisk-system";
                   categories = [ "System" "Utility" ];
                   keywords = [ "forensics" "mount" "writeblock" "target" "dfdisk" ];
@@ -106,7 +106,7 @@
                   desktopName = "dfnet Network Triage";
                   genericName = "Forensic Network Operations";
                   comment = "MAC spoofing, static IP setup (nmtui), network share mounting, and raw disk reception";
-                  exec = "kitty --title 'dfnet - Forensic Network Operations' -e sudo dfnet";
+                  exec = "kitty --title \"dfnet - Forensic Network Operations\" -e sudo dfnet";
                   icon = "network-workgroup";
                   categories = [ "System" "Network" ];
                   keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" ];
