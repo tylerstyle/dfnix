@@ -40,25 +40,28 @@ order = [ "default" ]
 type = "custom_button"
 glyph = "disc"
 label = "dfdisk"
+tooltip = "Launch dfdisk Forensic Imager (Mod+D)"
 
     [widget.dfdisk_btn.actions]
-    left = "kitty --title 'dfdisk - Forensic Imager' sudo dfdisk"
+    left = "exec kitty --title 'dfdisk - Forensic Imager' sudo dfdisk"
 
 [widget.dfmount_btn]
 type = "custom_button"
 glyph = "device-floppy"
 label = "dfmount"
+tooltip = "Launch dfmount Forensic Storage Manager (Mod+M)"
 
     [widget.dfmount_btn.actions]
-    left = "kitty --title 'dfmount - Forensic Storage Manager' sudo dfmount"
+    left = "exec kitty --title 'dfmount - Forensic Storage Manager' sudo dfmount"
 
 [widget.dfnet_btn]
 type = "custom_button"
 glyph = "network"
 label = "dfnet"
+tooltip = "Launch dfnet Forensic Network Operations (Mod+N)"
 
     [widget.dfnet_btn.actions]
-    left = "kitty --title 'dfnet - Forensic Network Operations' sudo dfnet"
+    left = "exec kitty --title 'dfnet - Forensic Network Operations' sudo dfnet"
 
 [wallpaper]
 directory = "/home/nixos/Pictures/Wallpapers"

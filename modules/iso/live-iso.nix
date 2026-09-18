@@ -65,6 +65,12 @@
       set -eu
       echo ">>> dfnix: Evaluating system memory for live forensic store..."
 
+      # Skip if /sysroot/iso is not mounted (e.g. in a QEMU VM or persistent installation)
+      if [ ! -d /sysroot/iso ] || ! mountpoint -q /sysroot/iso 2>/dev/null; then
+        echo ">>> dfnix: /sysroot/iso is not mounted, skipping copy-to-RAM."
+        exit 0
+      fi
+
       # Detect total RAM from /proc/meminfo
       read -r _ mem_total_kb _ < /proc/meminfo
       mem_total_mb=$(( mem_total_kb / 1024 ))

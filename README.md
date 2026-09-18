@@ -63,11 +63,13 @@ dfnix/
     │   ├── config.kdl              # Niri configuration with Mod+D (dfdisk) & Mod+M (dfmount)
     │   └── noctalia.kdl            # Noctalia theme color definitions
     ├── noctalia/
-    │   └── settings.json           # Top bar widgets, pinned apps & wallpaper configuration
+    │   ├── config.toml             # Noctalia shell configuration, top bar custom buttons, launcher
+    │   └── settings.toml           # Noctalia state & wallpaper presets
     └── assets/
         ├── wallpaper.png           # DF_K-BG02.png forensic desktop wallpaper
         ├── dfdisk.desktop          # Application launcher entry for dfdisk
-        └── df-mount-gui.desktop    # Application launcher entry for df-mount-gui
+        ├── dfmount.desktop         # Application launcher entry for dfmount
+        └── dfnet.desktop           # Application launcher entry for dfnet
 ```
 
 ---
@@ -120,49 +122,115 @@ dfnix/
 
 ---
 
-## 🚀 Building & Testing the Live ISO
+## 🚀 Building, Fast Prototyping & Virtualization
 
-### 1. Build the Bootable ISO (Flakeless)
-From the project root:
+`dfnix` supports two development workflows:
+1. **Lightning-Fast Prototyping (`make vm`)**: Skips squashfs `zstd` compression and ISO generation entirely. Rebuilds and boots in seconds by mounting the host `/nix/store` directly via VirtIO-9p.
+2. **Production ISO Release (`make iso`)**: Generates the complete, bootable, air-gapped hybrid UEFI/BIOS ISO with `zstd` squashfs compression.
+
+---
+
+### ⚡ 1. Fast Prototyping Workflow (`make vm`)
+
+When iterating on desktop configurations (`niri`, `noctalia`, `starship`), udev rules, or forensic packages, compressing multiple gigabytes of squashfs after every change is slow. Use the VM target instead:
+
+```bash
+# 1. Build the instant VM closure (takes seconds)
+make vm
+# or flakeless: nix-build -A vm -o result-vm
+# or flake:     nix build .#vm
+
+# 2. Launch the VM
+make test-vm
+# or: ./scripts/run-vm.sh --vm
+```
+
+---
+
+### 🖥️ 2. Virtualization on Workstation (`hpfury`) vs. Server (`hp-nix`)
+
+The integrated runner `./scripts/run-vm.sh` automatically detects the host environment and configures optimal display and input drivers:
+
+#### A. Interactive Desktop Workstation (`hpfury` / `nixos_df_r`)
+When executed within an active Wayland or X11 session:
+- **Display**: Automatically launches a native GUI window using hardware KVM acceleration (`-vga virtio`).
+- **Cursor**: Seamless pointer capture and release via `-device usb-tablet`.
+- **Drives**: Automatically attaches both a simulated suspect evidence drive (`test-evidence.raw`, write-blocked) and a destination storage drive (`test-target.raw`, writable for `dfmount` and `dfdisk`).
+
+```bash
+# Launch rapid prototyping VM in native GUI window:
+make test-vm
+
+# Or test the built ISO image in native GUI window:
+make test-qemu
+```
+
+#### B. Headless Application Server (`hp-nix` / Remote SSH)
+When run over SSH on a headless server without `$DISPLAY`:
+- **Auto-Headless**: Automatically starts **SPICE** (port `5930`), **VNC** (port `5901`), and guest **SSH forwarding** (port `2222`).
+- **Zero GUI Crashing**: Will never fail with display errors.
+
+```bash
+# Launch on hp-nix (runs in headless mode automatically):
+make test-vm
+# or for the full ISO:
+make test-qemu
+# or explicitly force headless:
+make test-headless
+```
+
+##### Connecting to the VM on `hp-nix` from `hpfury`:
+- **Option 1: SPICE (Recommended — dynamic resolution, clipboard & audio)**:
+  ```bash
+  remote-viewer spice://hp-nix:5930
+  ```
+- **Option 2: VNC**:
+  ```bash
+  vncviewer hp-nix:5901
+  ```
+- **Option 3: SSH Tunneling (if ports are firewalled)**:
+  ```bash
+  ssh -L 5901:127.0.0.1:5901 -L 5930:127.0.0.1:5930 hp-nix
+  # Then locally on hpfury:
+  remote-viewer spice://127.0.0.1:5930
+  ```
+- **Option 4: Direct SSH Console Triage (No GUI required)**:
+  ```bash
+  ssh -p 2222 nixos@hp-nix
+  # Inside guest: passwordless sudo for dfdisk, dfmount, dfnet
+  sudo dfdisk
+  ```
+
+---
+
+### 💿 3. Building & Flashing the Live ISO
+
+#### A. Build the Bootable ISO
 ```bash
 make iso
-# or: nix-build -A iso
+# or: nix-build -A iso -o result-iso
 ```
 *The resulting bootable hybrid ISO will be written to `./result-iso/iso/dfnix-forensics-x86_64-linux.iso`.*
 
-### 2. Test in QEMU with a Simulated Evidence Disk
-To verify write-blocking behavior without touching physical hardware:
+#### B. Verify Write-Blocking in QEMU
+Inside any booted live environment:
 ```bash
-# Create a dummy evidence disk image
-qemu-img create -f raw test-evidence.raw 1G
-mkfs.ext4 -F test-evidence.raw
-
-# Launch live ISO in QEMU
-qemu-system-x86_64 \
-  -m 8G \
-  -enable-kvm \
-  -cpu host \
-  -smp 4 \
-  -cdrom ./result/iso/*.iso \
-  -boot d \
-  -drive file=test-evidence.raw,format=raw,if=virtio
-```
-
-Inside the booted live desktop:
-```bash
-# Check read-only state (should return 1)
+# Verify kernel/blockdev write-block flag (returns 1 for read-only)
 blockdev --getro /dev/vda
 
-# Confirm that raw writes fail immediately:
+# Confirm that raw disk writes fail immediately:
 sudo dd if=/dev/zero of=/dev/vda bs=512 count=1
 # Output: dd: failed to open '/dev/vda': Read-only file system
 ```
 
-### 3. Flash to USB Media
+#### C. Flash to Physical USB Drive
 ```bash
-sudo dd if=./result/iso/*.iso of=/dev/sdX bs=4M status=progress oflag=sync
+# Flash with built-in safety checks against overwriting system disks:
+make flash DEV=/dev/sdX
+# or manually:
+sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync oflag=direct
 ```
-*(Replace `/dev/sdX` with your target flash drive)*
+*(Replace `/dev/sdX` with your target USB thumbdrive)*
 
 ---
 
