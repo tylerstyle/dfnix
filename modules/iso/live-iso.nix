@@ -50,6 +50,25 @@
   boot.tmp.useTmpfs = true;
   boot.tmp.tmpfsSize = "80%";
 
+  # Fix upstream NixOS copytoram bug: provide generous headroom so tmpfs never
+  # runs out of space due to metadata and 4KB page rounding ("No space left on device")
+  boot.initrd.systemd.services.copytoram.script = lib.mkForce ''
+    device=$(findmnt -n -o SOURCE --target /sysroot/iso)
+    fsSize=$(blockdev --getsize64 "$device" 2>/dev/null || stat -Lc '%s' "$device" 2>/dev/null || echo "4294967296")
+    extraBytes=$(( 2048 * 1024 * 1024 ))
+    targetSize=$(( fsSize + extraBytes ))
+    echo ">>> dfnix: Allocating $targetSize bytes RAM tmpfs for live forensic store..."
+    mkdir -p /tmp-iso
+    mount --bind --make-private /sysroot/iso /tmp-iso
+    umount /sysroot/iso
+    mount -t tmpfs -o size="$targetSize" tmpfs /sysroot/iso
+    echo ">>> dfnix: Copying forensic live OS into RAM..."
+    cp -r /tmp-iso/* /sysroot/iso/
+    umount /tmp-iso
+    rm -r /tmp-iso
+    echo ">>> dfnix: Live OS successfully loaded into RAM."
+  '';
+
   # ----------------------------------------------------------------------------
   # 100% Offline Air-Gapped Usability
   # ----------------------------------------------------------------------------
