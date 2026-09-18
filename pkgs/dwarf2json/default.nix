@@ -7,11 +7,11 @@ buildGoModule rec {
   src = fetchFromGitHub {
     owner = "volatilityfoundation";
     repo = "dwarf2json";
-    rev = "4ee603f9dc0f6e165b4cbf4dffb45d064cfcb3ee";
-    hash = "sha256-4O5L3c6bI4U417n5M9JmU6aW3yqI1bKz0VvWq8w0mK0=";
+    rev = "9f14607e0d339d463ea725fbd5c08aa7b7d40f75";
+    hash = "sha256-M5KKtn5kly23TwbjD5MVLzIum58exXqCFs6jxsg6oGM=";
   };
 
-  vendorHash = null;
+  vendorHash = "sha256-3PnXB8AfZtgmYEPJuh0fwvG38dtngoS/lxyx3H+rvFs=";
 
   meta = with lib; {
     description = "Converts DWARF symbols from Linux/macOS kernels into Volatility 3 ISF tables";
