@@ -1,4 +1,4 @@
-{ lib, stdenv, makeWrapper, macchanger, networkmanager, arp-scan, cifs-utils, nfs-utils, netcat, pv, iproute2, gawk }:
+{ lib, stdenv, makeWrapper, macchanger, networkmanager, arp-scan, cifs-utils, nfs-utils, netcat-openbsd, pv, iproute2, util-linux, gawk }:
 
 stdenv.mkDerivation {
   pname = "dfnet";
@@ -19,9 +19,10 @@ stdenv.mkDerivation {
         arp-scan
         cifs-utils
         nfs-utils
-        netcat
+        netcat-openbsd
         pv
         iproute2
+        util-linux
         gawk
       ]}
 
@@ -35,7 +36,7 @@ Version=1.0
 Name=dfnet Network Triage
 GenericName=Forensic Network Operations
 Comment=MAC spoofing, static IP setup (nmtui), network share mounting, and raw disk reception
-Exec=kitty --title "dfnet - Forensic Network Operations" -e sudo dfnet
+Exec=kitty --title "dfnet - Forensic Network Operations" sudo dfnet
 Icon=network-workgroup
 Terminal=false
 Type=Application

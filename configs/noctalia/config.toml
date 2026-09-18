@@ -1,0 +1,83 @@
+# ==============================================================================
+# Noctalia Desktop Shell Configuration (v5.1.0+) for dfnix
+# Tailored for forensic field workflow, dark cyber aesthetic, and zero popups
+# ==============================================================================
+
+[shell]
+setup_wizard_enabled = false
+telemetry_enabled = false
+shared_gl_context = true
+font_family = "Noto Sans"
+corner_radius_scale = 1.0
+
+    [shell.launcher]
+    categories = true
+    compact = false
+    show_icons = true
+    sort_by_usage = true
+    pinned = [ "dfdisk.desktop", "dfmount.desktop", "dfnet.desktop", "kitty.desktop", "dolphin.desktop" ]
+
+    [shell.panel]
+    transparency_mode = "soft"
+
+[storage]
+key_source = "file"
+key_file = "/home/nixos/.config/noctalia/storage.key"
+
+[bar]
+order = [ "default" ]
+
+    [bar.default]
+    enabled = true
+    thickness = 34
+    background_opacity = 0.65
+    contact_shadow = true
+    start = [ "launcher", "workspaces" ]
+    center = [ "dfdisk_btn", "dfmount_btn", "dfnet_btn" ]
+    end = [ "clock", "tray", "volume", "brightness", "battery", "control-center" ]
+
+[widget.dfdisk_btn]
+type = "custom_button"
+glyph = "disc"
+label = "dfdisk"
+
+    [widget.dfdisk_btn.actions]
+    left = "kitty --title 'dfdisk - Forensic Imager' sudo dfdisk"
+
+[widget.dfmount_btn]
+type = "custom_button"
+glyph = "device-floppy"
+label = "dfmount"
+
+    [widget.dfmount_btn.actions]
+    left = "kitty --title 'dfmount - Forensic Storage Manager' sudo dfmount"
+
+[widget.dfnet_btn]
+type = "custom_button"
+glyph = "network"
+label = "dfnet"
+
+    [widget.dfnet_btn.actions]
+    left = "kitty --title 'dfnet - Forensic Network Operations' sudo dfnet"
+
+[wallpaper]
+directory = "/home/nixos/Pictures/Wallpapers"
+enabled = true
+fill_color = "#121414"
+fill_mode = "crop"
+transition_on_startup = false
+
+    [wallpaper.automation]
+    enabled = false
+
+    [wallpaper.default]
+    path = "/home/nixos/Pictures/DF_K-BG02.png"
+
+    [wallpaper.last]
+    path = "/home/nixos/Pictures/DF_K-BG02.png"
+
+[theme]
+builtin = "Noctalia"
+mode = "dark"
+source = "wallpaper"
+wallpaper_scheme = "m3-content"

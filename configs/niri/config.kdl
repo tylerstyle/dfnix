@@ -3,6 +3,7 @@
 
 // --- Autostart ---
 spawn-at-startup "noctalia"
+spawn-at-startup "sh" "-c" "sleep 1 && noctalia msg wallpaper-set /home/nixos/Pictures/DF_K-BG02.png"
 
 config-notification {
     disable-failed
@@ -195,9 +196,9 @@ binds {
     Ctrl+Alt+T      { spawn "kitty"; }
     Mod+E           { spawn "dolphin"; }
     Mod+B           { spawn "firefox"; }
-    Mod+D           { spawn "kitty" "--title" "dfdisk - Forensic Imager" "-e" "sudo" "dfdisk"; }
-    Mod+M           { spawn "kitty" "--title" "dfmount - Forensic Storage Manager" "-e" "sudo" "dfmount"; }
-    Mod+N           { spawn "kitty" "--title" "dfnet - Forensic Network Operations" "-e" "sudo" "dfnet"; }
+    Mod+D           { spawn "kitty" "--title" "dfdisk - Forensic Imager" "sudo" "dfdisk"; }
+    Mod+M           { spawn "kitty" "--title" "dfmount - Forensic Storage Manager" "sudo" "dfmount"; }
+    Mod+N           { spawn "kitty" "--title" "dfnet - Forensic Network Operations" "sudo" "dfnet"; }
 
     // --- Window Actions ---
     Mod+Q           { close-window; }

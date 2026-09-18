@@ -1,0 +1,71 @@
+# ==============================================================================
+# Starship Prompt Configuration for dfnix Forensic Live Environment
+# Clean, readable, responsive prompt displaying examiner status and path
+# ==============================================================================
+
+format = """
+$os\
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$cmd_duration\
+$status\
+$line_break\
+$character"""
+
+# Timeout in milliseconds
+command_timeout = 500
+
+[os]
+disabled = false
+style = "bold white"
+
+[os.symbols]
+NixOS = " "
+Linux = "🐧 "
+
+[username]
+show_always = true
+style_user = "bold cyan"
+style_root = "bold red"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+style = "bold green"
+format = "@[$hostname]($style) "
+
+[directory]
+truncation_length = 4
+truncate_to_repo = false
+style = "bold blue"
+read_only = " 󰌾 RO"
+read_only_style = "bold red"
+format = "in [$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+symbol = " "
+style = "bold purple"
+format = "on [$symbol$branch]($style) "
+
+[git_status]
+style = "bold yellow"
+format = "([$all_status$ahead_behind]($style) )"
+
+[cmd_duration]
+min_time = 2_000
+style = "bold yellow"
+format = "took [$duration]($style) "
+
+[status]
+disabled = false
+style = "bold red"
+symbol = "✖ "
+format = "[$symbol$status]($style) "
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vicmd_symbol = "[❮](bold yellow)"

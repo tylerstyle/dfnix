@@ -37,8 +37,29 @@ EOF
   dfnixSession = pkgs.writeShellScriptBin "dfnix-session" ''
     set -e
 
+    # 1. Wait for GPU KMS DRM card device (prevents early agetty race condition)
+    for i in $(seq 1 50); do
+      if ls /dev/dri/card* >/dev/null 2>&1; then
+        break
+      fi
+      sleep 0.1
+    done
+
+    # 2. Wait for systemd user bus / session initialization
+    USER_ID="$(id -u)"
+    for i in $(seq 1 30); do
+      if [ -S "/run/user/$USER_ID/bus" ] || [ -d "/run/user/$USER_ID/systemd" ]; then
+        break
+      fi
+      sleep 0.1
+    done
+
     HOME_DIR="''${HOME:-/home/nixos}"
-    mkdir -p "$HOME_DIR/.config/niri" "$HOME_DIR/.config/noctalia" "$HOME_DIR/Pictures/Wallpapers"
+    mkdir -p "$HOME_DIR/.config/niri" \
+             "$HOME_DIR/.config/noctalia" \
+             "$HOME_DIR/.config/kitty" \
+             "$HOME_DIR/.local/state/noctalia" \
+             "$HOME_DIR/Pictures/Wallpapers"
 
     # Pre-populate dotfiles from system templates if missing
     if [ ! -f "$HOME_DIR/.config/niri/config.kdl" ] && [ -f /etc/niri/config.kdl ]; then
@@ -47,11 +68,24 @@ EOF
     if [ ! -f "$HOME_DIR/.config/niri/noctalia.kdl" ] && [ -f /etc/niri/noctalia.kdl ]; then
       cp -f /etc/niri/noctalia.kdl "$HOME_DIR/.config/niri/noctalia.kdl"
     fi
-    if [ ! -f "$HOME_DIR/.config/noctalia/settings.json" ] && [ -f /etc/xdg/noctalia/settings.json ]; then
-      cp -f /etc/xdg/noctalia/settings.json "$HOME_DIR/.config/noctalia/settings.json"
+    if [ ! -f "$HOME_DIR/.config/noctalia/config.toml" ] && [ -f /etc/xdg/noctalia/config.toml ]; then
+      cp -f /etc/xdg/noctalia/config.toml "$HOME_DIR/.config/noctalia/config.toml"
     fi
-    if [ ! -f "$HOME_DIR/.config/noctalia/plugins.json" ] && [ -f /etc/xdg/noctalia/plugins.json ]; then
-      cp -f /etc/xdg/noctalia/plugins.json "$HOME_DIR/.config/noctalia/plugins.json"
+    if [ ! -f "$HOME_DIR/.local/state/noctalia/settings.toml" ] && [ -f /etc/xdg/noctalia/settings.toml ]; then
+      cp -f /etc/xdg/noctalia/settings.toml "$HOME_DIR/.local/state/noctalia/settings.toml"
+    fi
+    if [ ! -f "$HOME_DIR/.local/state/noctalia/.setup-complete" ]; then
+      touch "$HOME_DIR/.local/state/noctalia/.setup-complete"
+    fi
+    if [ ! -f "$HOME_DIR/.config/noctalia/storage.key" ]; then
+      echo "4a6f72656e7369635365637265744b6579313233343536373839616263646566" > "$HOME_DIR/.config/noctalia/storage.key"
+      chmod 0600 "$HOME_DIR/.config/noctalia/storage.key"
+    fi
+    if [ ! -f "$HOME_DIR/.config/kitty/kitty.conf" ] && [ -f /etc/xdg/kitty/kitty.conf ]; then
+      cp -f /etc/xdg/kitty/kitty.conf "$HOME_DIR/.config/kitty/kitty.conf"
+    fi
+    if [ ! -f "$HOME_DIR/.config/starship.toml" ] && [ -f /etc/starship.toml ]; then
+      cp -f /etc/starship.toml "$HOME_DIR/.config/starship.toml"
     fi
     if [ ! -f "$HOME_DIR/Pictures/DF_K-BG02.png" ] && [ -f /etc/xdg/dfnix/wallpaper.png ]; then
       cp -f /etc/xdg/dfnix/wallpaper.png "$HOME_DIR/Pictures/DF_K-BG02.png"
@@ -68,8 +102,17 @@ EOF
 
     echo ">>> dfnix: Starting Niri Wayland session..."
     set +e
-    niri-session
+    # Use -l flag to prevent upstream niri-session from re-spawning a login shell loop
+    niri-session -l
     EXIT_CODE=$?
+
+    # Auto-retry once after 1s if transient DRM/Wayland initialization hiccup occurred
+    if [ $EXIT_CODE -ne 0 ]; then
+      echo ">>> Transient startup issue (exit code $EXIT_CODE), retrying in 1s..."
+      sleep 1
+      niri-session -l
+      EXIT_CODE=$?
+    fi
     set -e
 
     clear
@@ -77,6 +120,7 @@ EOF
     echo ""
     echo "Niri session exited with code: $EXIT_CODE"
     echo ""
+    rm -f /tmp/.dfnix-session-started
     exec bash --login
   '';
 in
@@ -97,6 +141,10 @@ in
     services.xserver.displayManager.lightdm.enable = mkForce false;
     services.displayManager.sddm.enable = mkForce false;
     services.displayManager.gdm.enable = mkForce false;
+
+    # Completely disable GNOME Keyring to eliminate "Choose password for new keyring" prompts
+    services.gnome.gnome-keyring.enable = mkForce false;
+    security.pam.services.login.enableGnomeKeyring = false;
 
     # 2. Live ISO user privileges & passwordless login/sudo
     users.users.nixos = {

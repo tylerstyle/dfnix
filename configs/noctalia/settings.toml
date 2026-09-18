@@ -1,0 +1,20 @@
+# ==============================================================================
+# Noctalia Initial State Override (v5.1.0+)
+# Ensures no first-run wizard and pre-seeds the forensic wallpaper
+# ==============================================================================
+
+[shell]
+setup_wizard_enabled = false
+
+[storage]
+key_source = "file"
+key_file = "/home/nixos/.config/noctalia/storage.key"
+
+[wallpaper]
+transition_on_startup = false
+
+    [wallpaper.default]
+    path = "/home/nixos/Pictures/DF_K-BG02.png"
+
+    [wallpaper.last]
+    path = "/home/nixos/Pictures/DF_K-BG02.png"
