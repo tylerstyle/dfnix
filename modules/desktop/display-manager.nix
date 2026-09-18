@@ -41,11 +41,11 @@ EOF
     mkdir -p "$HOME_DIR/.config/niri" "$HOME_DIR/.config/noctalia" "$HOME_DIR/Pictures/Wallpapers"
 
     # Pre-populate dotfiles from system templates if missing
-    if [ ! -f "$HOME_DIR/.config/niri/config.kdl" ] && [ -f /etc/xdg/niri/config.kdl ]; then
-      cp -f /etc/xdg/niri/config.kdl "$HOME_DIR/.config/niri/config.kdl"
+    if [ ! -f "$HOME_DIR/.config/niri/config.kdl" ] && [ -f /etc/niri/config.kdl ]; then
+      cp -f /etc/niri/config.kdl "$HOME_DIR/.config/niri/config.kdl"
     fi
-    if [ ! -f "$HOME_DIR/.config/niri/noctalia.kdl" ] && [ -f /etc/xdg/niri/noctalia.kdl ]; then
-      cp -f /etc/xdg/niri/noctalia.kdl "$HOME_DIR/.config/niri/noctalia.kdl"
+    if [ ! -f "$HOME_DIR/.config/niri/noctalia.kdl" ] && [ -f /etc/niri/noctalia.kdl ]; then
+      cp -f /etc/niri/noctalia.kdl "$HOME_DIR/.config/niri/noctalia.kdl"
     fi
     if [ ! -f "$HOME_DIR/.config/noctalia/settings.json" ] && [ -f /etc/xdg/noctalia/settings.json ]; then
       cp -f /etc/xdg/noctalia/settings.json "$HOME_DIR/.config/noctalia/settings.json"
@@ -90,11 +90,13 @@ in
   };
 
   config = mkIf config.dfnix.desktop.displayManager.enable {
-    # 1. Direct TTY1 autologin without SDDM friction
+    # 1. Direct TTY1 autologin without SDDM/LightDM friction
     services.getty.autologinUser = "nixos";
 
-    # Explicitly ensure SDDM is disabled
-    services.displayManager.sddm.enable = false;
+    # Explicitly ensure ALL display managers (SDDM, LightDM, GDM) are completely disabled
+    services.xserver.displayManager.lightdm.enable = mkForce false;
+    services.displayManager.sddm.enable = mkForce false;
+    services.displayManager.gdm.enable = mkForce false;
 
     # 2. Live ISO user privileges & passwordless login/sudo
     users.users.nixos = {
@@ -115,7 +117,7 @@ in
 
     # 4. Auto-launch Niri on TTY1 login
     environment.loginShellInit = ''
-      if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+      if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && { [ "$(tty 2>/dev/null)" = "/dev/tty1" ] || [ "''${XDG_VTNR:-}" = "1" ]; }; then
         if [ ! -f /tmp/.dfnix-session-started ]; then
           touch /tmp/.dfnix-session-started
           exec dfnix-session
