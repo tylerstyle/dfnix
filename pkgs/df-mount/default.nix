@@ -44,6 +44,18 @@ stdenv.mkDerivation rec {
     cp df-mount.sh $out/bin/df-mount
     chmod +x $out/bin/df-mount
 
+    # Install TUI
+    cp dfmount-tui.py $out/bin/dfmount
+    chmod +x $out/bin/dfmount
+
+    wrapProgram $out/bin/dfmount \
+      --prefix PATH : ${lib.makeBinPath [
+        util-linux
+        gawk
+        gnugrep
+        coreutils
+      ]}:$out/bin
+
     wrapProgram $out/bin/df-mount \
       --prefix PATH : ${lib.makeBinPath [
         util-linux

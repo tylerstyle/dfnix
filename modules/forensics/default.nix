@@ -78,14 +78,44 @@ with lib;
       sqlitebrowser           # Visual SQLite database inspector
 
       # ------------------------------------------------------------------------
-      # Network Forensics & PCAP
+      # Network Forensics, Recon & Remote Acquisition
       # ------------------------------------------------------------------------
+      df-net                  # Forensic network operations & MAC spoofer
+      macchanger              # MAC address spoofing / faking
+      networkmanager          # Includes nmtui (interactive network TUI)
+      arp-scan                # Local ARP network device discovery
+      fping                   # Rapid parallel network pinging
+      ethtool                 # Ethernet speed / duplex / link diagnostics
+      iperf3                  # Network bandwidth throughput testing
+      cifs-utils              # SMB/CIFS filesystem tools (mount.cifs)
+      samba                   # smbclient for Windows share browsing
+      nfs-utils               # NFS client (mount.nfs)
+      sshfs                   # FUSE mount remote directories over SSH
+      rsync                   # Remote incremental file copying
+      rclone                  # Multi-protocol remote storage sync (SFTP, S3, WebDAV)
+      openiscsi               # iSCSI client for connecting remote SAN/NAS targets
+      netcat                  # Raw network stream piping
+      socat                   # Advanced bidirectional data relay
+      pv                      # Pipe viewer (live MB/s rate and progress monitor)
       wireshark               # Packet inspection GUI
       tshark                  # Terminal Wireshark
       tcpdump                 # Network packet capture
       zeek                    # Network security behavioral analyzer
       tcpflow                 # Flow recorder
       ngrep                   # Network grep
+
+      # ------------------------------------------------------------------------
+      # Optical Media, NVMe & Hardware Acquisition
+      # ------------------------------------------------------------------------
+      dvdplusrwtools          # DVD/BD mastering and raw extraction
+      cdrtools                # CD/DVD reading tools (readcd, cdda2wav)
+      safecopy                # Resilient data rescue for damaged optical / flash media
+      f3                      # Fight Flash Fraud (detect fake capacity flash drives)
+      nvme-cli                # NVMe health, namespaces, and vendor diagnostics
+      hdparm                  # SATA drive parameters, security freeze & firmware info
+      sdparm                  # SCSI/SAS disk parameter inspection
+      sg3_utils               # Low-level SCSI generic command sender
+      lsscsi                  # List SCSI/SATA/SAS bus topologies
 
       # ------------------------------------------------------------------------
       # Mobile & Firmware

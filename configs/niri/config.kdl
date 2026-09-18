@@ -193,7 +193,8 @@ binds {
     Mod+E           { spawn "dolphin"; }
     Mod+B           { spawn "firefox"; }
     Mod+D           { spawn "kitty" "--title" "dfdisk - Forensic Imager" "-e" "sudo" "dfdisk"; }
-    Mod+M           { spawn "sudo" "df-mount-gui"; }
+    Mod+M           { spawn "kitty" "--title" "dfmount - Forensic Storage Manager" "-e" "sudo" "dfmount"; }
+    Mod+N           { spawn "kitty" "--title" "df-net - Forensic Network Operations" "-e" "sudo" "df-net"; }
 
     // --- Window Actions ---
     Mod+Q           { close-window; }
