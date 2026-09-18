@@ -11,10 +11,19 @@ in
   # nix-build -A iso
   iso = nixos.config.system.build.isoImage;
 
-  # Standard packages
-  dfdisk = pkgs.callPackage ./pkgs/dfdisk { };
-  dfmount = pkgs.callPackage ./pkgs/dfmount { };
-  dfnet = pkgs.callPackage ./pkgs/dfnet { };
+  # Standard packages (ingesting from local sibling repos if available)
+  dfdisk = if builtins.pathExists ../dfdisk/package.nix
+           then pkgs.callPackage ../dfdisk/package.nix { }
+           else pkgs.callPackage ./pkgs/dfdisk { };
+
+  dfmount = if builtins.pathExists ../dfmount/package.nix
+            then pkgs.callPackage ../dfmount/package.nix { }
+            else pkgs.callPackage ./pkgs/dfmount { };
+
+  dfnet = if builtins.pathExists ../dfnet/package.nix
+          then pkgs.callPackage ../dfnet/package.nix { }
+          else pkgs.callPackage ./pkgs/dfnet { };
+
   dwarf2json = pkgs.callPackage ./pkgs/dwarf2json { };
   regripper = pkgs.callPackage ./pkgs/regripper { };
 

@@ -2,9 +2,19 @@
 
 let
   forensicsOverlay = final: prev: {
-    dfdisk = final.callPackage ./pkgs/dfdisk { };
-    dfmount = final.callPackage ./pkgs/dfmount { };
-    dfnet = final.callPackage ./pkgs/dfnet { };
+    # Live workspace ingestion: Ingests current local git repos if present
+    dfdisk = if builtins.pathExists ../dfdisk/package.nix
+             then final.callPackage ../dfdisk/package.nix { }
+             else final.callPackage ./pkgs/dfdisk { };
+
+    dfmount = if builtins.pathExists ../dfmount/package.nix
+              then final.callPackage ../dfmount/package.nix { }
+              else final.callPackage ./pkgs/dfmount { };
+
+    dfnet = if builtins.pathExists ../dfnet/package.nix
+            then final.callPackage ../dfnet/package.nix { }
+            else final.callPackage ./pkgs/dfnet { };
+
     dwarf2json = final.callPackage ./pkgs/dwarf2json { };
     regripper = final.callPackage ./pkgs/regripper { };
   };
