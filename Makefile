@@ -2,13 +2,16 @@
 # Makefile for dfnix (Flakeless NixOS Live ISO Build System)
 # ==============================================================================
 
-.PHONY: help iso check test-qemu clean
+.PHONY: help iso check test-qemu flash clean
+
+DEV ?= /dev/sda
 
 help:
 	@echo "dfnix Build System (Flakeless NixOS)"
 	@echo ""
 	@echo "Targets:"
 	@echo "  make iso         Build the live bootable forensic ISO (./result-iso)"
+	@echo "  make flash       Flash the built ISO onto USB stick (default: DEV=/dev/sda)"
 	@echo "  make check       Verify Nix syntax and evaluate system closure"
 	@echo "  make test-qemu   Launch the built ISO in QEMU with a test evidence drive"
 	@echo "  make clean       Remove Nix build results and temporary artifacts"
@@ -17,6 +20,10 @@ help:
 iso:
 	@echo "==> Building dfnix live bootable ISO (flakeless)..."
 	nix-build -A iso -o result-iso
+
+flash:
+	@echo "==> Flashing dfnix ISO onto $(DEV)..."
+	@./scripts/flash.sh $(DEV)
 
 check:
 	@echo "==> Evaluating configuration syntax..."
