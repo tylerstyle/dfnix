@@ -1,11 +1,11 @@
 # ==============================================================================
-# Makefile for df-nix (Flakeless NixOS Live ISO Build System)
+# Makefile for dfnix (Flakeless NixOS Live ISO Build System)
 # ==============================================================================
 
 .PHONY: help iso check test-qemu clean
 
 help:
-	@echo "df-nix Build System (Flakeless NixOS)"
+	@echo "dfnix Build System (Flakeless NixOS)"
 	@echo ""
 	@echo "Targets:"
 	@echo "  make iso         Build the live bootable forensic ISO (./result-iso)"
@@ -15,7 +15,7 @@ help:
 	@echo ""
 
 iso:
-	@echo "==> Building df-nix live bootable ISO (flakeless)..."
+	@echo "==> Building dfnix live bootable ISO (flakeless)..."
 	nix-build -A iso -o result-iso
 
 check:
@@ -28,7 +28,7 @@ test-qemu:
 		qemu-img create -f raw test-evidence.raw 1G; \
 		mkfs.ext4 -F test-evidence.raw; \
 	fi
-	@echo "==> Launching df-nix ISO in QEMU..."
+	@echo "==> Launching dfnix ISO in QEMU..."
 	qemu-system-x86_64 \
 		-m 8G \
 		-enable-kvm \

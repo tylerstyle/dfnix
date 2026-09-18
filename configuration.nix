@@ -14,7 +14,7 @@ in
     # Base Live CD/DVD module (from nixpkgs channel)
     <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-base.nix>
 
-    # df-nix Forensic Modules
+    # dfnix Forensic Modules
     ./modules/iso/live-iso.nix
     ./modules/hardware/write-blocking.nix
     ./modules/forensics/default.nix

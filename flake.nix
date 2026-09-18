@@ -1,5 +1,5 @@
 {
-  description = "df-nix: Live Bootable NixOS Distribution Tuned for Forensic Field Work";
+  description = "dfnix: Live Bootable NixOS Distribution Tuned for Forensic Field Work";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

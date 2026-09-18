@@ -1,7 +1,7 @@
-# df-nix 🔍💿
+# dfnix 🔍💿
 > **Declarative, Bit-for-Bit Reproducible Live NixOS Distribution Engineered for Digital Forensics and Incident Response (DFIR) Field Operations.**
 
-`df-nix` is a specialized, air-gapped, live bootable NixOS ISO tailored for digital forensic field acquisition, damaged media triage, and incident response. It integrates **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** with an asymmetric, NIST CFTT-compliant software write-blocking architecture, a dual desktop environment featuring **Niri + Noctalia** (Wayland) alongside a lightweight **XFCE** (X11) fallback, and a dedicated **`df-mount`** forensic storage manager.
+`dfnix` is a specialized, air-gapped, live bootable NixOS ISO tailored for digital forensic field acquisition, damaged media triage, and incident response. It integrates **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** with an asymmetric, NIST CFTT-compliant software write-blocking architecture, a dual desktop environment featuring **Niri + Noctalia** (Wayland) alongside a lightweight **XFCE** (X11) fallback, and dedicated standalone tools: **`dfmount`** (storage manager) and **`dfnet`** (network operations).
 
 ---
 
@@ -12,13 +12,13 @@
   - **Swap Inactivation**: `systemd.targets.swap.enable = false` ensures evidence disks with swap flags are never touched as virtual memory.
   - **Kernel Driver Ro-Enforcement**: Immediate `blockdev --setro` and `ATTR{ro}="1"` triggered via udev upon disk/partition insertion.
   - **Udisks & Polkit Lockdown**: Suppresses auto-probing and blocks unauthenticated desktop mounts.
-  - **Zero Journal Replay (`df-mount`)**: Mounts ext4 (`ro,noload`), XFS (`ro,norecovery`), and Btrfs (`ro,rescue=nologreplay`) without altering filesystem superblocks or dirty logs.
+  - **Zero Journal Replay (`dfmount`)**: Mounts ext4 (`ro,noload`), XFS (`ro,norecovery`), and Btrfs (`ro,rescue=nologreplay`) without altering filesystem superblocks or dirty logs.
 - **Asymmetric Evidence vs. Target Workflow**:
   - All attached devices are locked **Read-Only** by default.
   - Examiners can selectively **unblock destination drives** or mount them writeable under `/media/target` so `dfdisk` can write `.E01` or `.raw` images.
 - **Dual Desktop Experience**:
   - **Primary**: **Niri** (modern scrollable-tiling Wayland compositor) with the **Noctalia** top bar and shell, customized dark theme, and high-DPI fluidity.
-  - **Top Bar Integration**: Direct access to `dfdisk` and the `df-mount-gui` forensic storage manager.
+  - **Top Bar & TUI Integration**: Instant keyboard-driven access to `dfdisk`, `dfmount`, and `dfnet`.
   - **Fallback**: **XFCE** (X11) with automounting strictly disabled, providing guaranteed boot on vintage laptops, legacy BIOS, or GPUs without Wayland support.
   - **Desktop Branding**: Pre-configured with the custom `DF_K-BG02.png` forensic wallpaper and auto-login to session `niri`.
 - **Field-Ready Live Architecture**:
@@ -31,8 +31,11 @@
 ## 📐 Project Architecture
 
 ```
-df-nix/
-├── flake.nix                       # Flake entrypoint: builds live ISO & workstation closures
+dfnix/
+├── configuration.nix               # Root flakeless NixOS live ISO configuration
+├── default.nix                     # Flakeless build entrypoint (nix-build -A iso)
+├── Makefile                        # Single-command shortcuts (make iso, make check)
+├── flake.nix                       # Optional flake definition
 ├── .gitignore
 ├── README.md
 ├── modules/
@@ -85,10 +88,10 @@ df-nix/
 [Connect Destination Drive (e.g. /dev/sdc for E01 dumps)]
            │
            ▼
-[Launch df-mount (Top Bar Icon or Mod+M)]
+[Launch dfmount (Top Bar Icon or Mod+M)]
            │
            ├── Select Destination Drive (/dev/sdc1)
-           ├── Click "💾 Mount Target" (or run 'sudo df-mount target /dev/sdc1')
+           ├── Click "💾 Mount Target" (or run 'sudo dfmount target /dev/sdc1')
            └── Destination mounted writeable at /media/target/sdc1
                    │
                    ▼
@@ -105,12 +108,13 @@ df-nix/
 
 | Category | Tools Included |
 | :--- | :--- |
-| **Disk Acquisition & Imaging** | `dfdisk`, `df-mount`, `libewf` (`ewfacquire`, `ewfexport`), `dcfldd`, `ddrescue`, `ddrescueview`, `afflib`, `qemu-utils` (`qemu-nbd`) |
-| **Filesystem & File Carving** | `sleuthkit` (TSK), `testdisk`, `qphotorec`, `foremost`, `scalpel`, `bulk_extractor`, `ext4magic`, `extundelete` |
+| **Disk Acquisition & Imaging** | `dfdisk`, `dfmount`, `libewf` (`ewfacquire`, `ewfexport`), `dcfldd`, `ddrescue`, `ddrescueview`, `afflib`, `qemu-utils` (`qemu-nbd`) |
+| **Filesystem & File Carving** | `sleuthkit` (TSK), `testdisk`, `testdisk-qt`, `foremost`, `scalpel`, `bulk_extractor`, `ext4magic`, `extundelete` |
 | **Decryption & Filesystems** | `cryptsetup` (LUKS), `dislocker` (BitLocker), `libbde`, `veracrypt`, `apfs-fuse`, `apfsprogs`, `ntfs3g`, `btrfs-progs`, `xfsprogs` |
 | **Memory Forensics** | `volatility3`, `dwarf2json` |
 | **Registry & Artifacts** | `regripper` (rip.pl), `chainsaw` (EVTX), `python3Packages.evtx`, `sqlitebrowser` |
-| **Network Forensics** | `wireshark`, `tshark`, `tcpdump`, `zeek`, `tcpflow`, `ngrep` |
+| **Network & Acquisition** | `dfnet`, `macchanger`, `wireshark`, `tshark`, `tcpdump`, `zeek`, `cifs-utils`, `nfs-utils`, `sshfs`, `rclone` |
+| **Optical Media & Hardware** | `dvdplusrwtools`, `cdrtools`, `safecopy`, `f3`, `nvme-cli`, `hdparm`, `sdparm`, `sg3_utils`, `lsscsi` |
 | **Mobile & Firmware** | `binwalk`, `android-tools` (ADB/Fastboot), `libimobiledevice` |
 | **Hardware & Triage** | `smartmontools`, `parted`, `gptfdisk`, `pciutils`, `usbutils`, `btop`, `yazi`, `fastfetch` |
 
@@ -118,12 +122,13 @@ df-nix/
 
 ## 🚀 Building & Testing the Live ISO
 
-### 1. Build the Bootable ISO
+### 1. Build the Bootable ISO (Flakeless)
 From the project root:
 ```bash
-nix build .#iso
+make iso
+# or: nix-build -A iso
 ```
-*The resulting bootable hybrid ISO will be written to `./result/iso/df-nix-forensics-x86_64-linux.iso`.*
+*The resulting bootable hybrid ISO will be written to `./result-iso/iso/dfnix-forensics-x86_64-linux.iso`.*
 
 ### 2. Test in QEMU with a Simulated Evidence Disk
 To verify write-blocking behavior without touching physical hardware:

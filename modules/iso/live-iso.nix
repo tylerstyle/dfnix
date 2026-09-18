@@ -4,7 +4,7 @@
   # ----------------------------------------------------------------------------
   # Live ISO Image Settings
   # ----------------------------------------------------------------------------
-  image.baseName = lib.mkForce "df-nix-forensics";
+  image.baseName = lib.mkForce "dfnix-forensics";
   isoImage = {
     volumeID = "DFNIX_LIVE";
 
