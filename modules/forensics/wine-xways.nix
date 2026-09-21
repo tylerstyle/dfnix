@@ -3,6 +3,79 @@
 with lib;
 
 let
+  # Rockey4ND / Feitian HID dongles call HidD_FlushQueue right after HidD_SetFeature.
+  # Wine's hidclass.sys/hid.dll returns STATUS_NOT_SUPPORTED (0xc00000bb) for IOCTL_HID_FLUSH_QUEUE (0xb0197),
+  # causing the dongle communication library to fail and trigger the "waiting for dongle" popup.
+  # We dynamically parse and patch HidD_FlushQueue in Wine's PE hid.dll (64-bit and 32-bit)
+  # to immediately return TRUE (1), allowing the Rockey4 cryptographic handshake to succeed seamlessly.
+  pePatchScript = ''
+    import struct, sys
+
+    def patch_hid(src_path, dst_path, is_32bit):
+        with open(src_path, "rb") as f:
+            data = bytearray(f.read())
+        pe_offset = struct.unpack_from("<I", data, 0x3c)[0]
+        num_sections = struct.unpack_from("<H", data, pe_offset + 6)[0]
+        opt_hdr_size = struct.unpack_from("<H", data, pe_offset + 20)[0]
+        sec_offset = pe_offset + 24 + opt_hdr_size
+        magic = struct.unpack_from("<H", data, pe_offset + 24)[0]
+        is_64 = (magic == 0x20b)
+
+        def rva_to_offset(rva):
+            for i in range(num_sections):
+                sec = data[sec_offset + i*40 : sec_offset + (i+1)*40]
+                vsize, va, rsize, rptr = struct.unpack_from("<IIII", sec, 8)
+                if va <= rva < va + vsize:
+                    return rptr + (rva - va)
+            return None
+
+        opt_offset = pe_offset + 24
+        data_dir = opt_offset + (112 if is_64 else 96)
+        export_rva, export_size = struct.unpack_from("<II", data, data_dir)
+        export_offset = rva_to_offset(export_rva)
+        num_funcs, num_names, funcs_rva, names_rva, ords_rva = struct.unpack_from("<IIIII", data, export_offset + 20)
+        funcs_off = rva_to_offset(funcs_rva)
+        names_off = rva_to_offset(names_rva)
+        ords_off = rva_to_offset(ords_rva)
+
+        target_offset = None
+        for i in range(num_names):
+            name_rva = struct.unpack_from("<I", data, names_off + i*4)[0]
+            name_off = rva_to_offset(name_rva)
+            fn_name = data[name_off:data.find(b"\x00", name_off)].decode("ascii")
+            if fn_name == "HidD_FlushQueue":
+                ord_val = struct.unpack_from("<H", data, ords_off + i*2)[0]
+                func_rva = struct.unpack_from("<I", data, funcs_off + ord_val*4)[0]
+                target_offset = rva_to_offset(func_rva)
+                break
+
+        if target_offset is None:
+            sys.exit(f"HidD_FlushQueue not found in {src_path}")
+
+        # Patch: mov $1, %eax; ret (or ret $4 in 32-bit stdcall)
+        if is_64:
+            patch = b"\xb8\x01\x00\x00\x00\xc3"
+        else:
+            patch = b"\xb8\x01\x00\x00\x00\xc2\x04\x00"
+        data[target_offset:target_offset + len(patch)] = patch
+        with open(dst_path, "wb") as f:
+            f.write(data)
+
+    patch_hid(sys.argv[1], sys.argv[2], sys.argv[3] == "32")
+  '';
+
+  patchedWineHid64 = pkgs.runCommand "wine-hid64-patched.dll" {
+    nativeBuildInputs = [ pkgs.python3 ];
+  } ''
+    python3 -c '${pePatchScript}' "${pkgs.wineWow64Packages.stable}/lib/wine/x86_64-windows/hid.dll" "$out" "64"
+  '';
+
+  patchedWineHid32 = pkgs.runCommand "wine-hid32-patched.dll" {
+    nativeBuildInputs = [ pkgs.python3 ];
+  } ''
+    python3 -c '${pePatchScript}' "${pkgs.wineWow64Packages.stable}/lib/wine/i386-windows/hid.dll" "$out" "32"
+  '';
+
   # Dedicated X-Ways launcher with root privilege auto-elevation,
   # graphical session preservation, Wine prefix management,
   # Feitian/CodeMeter dongle support, and raw physical disk mapping.
@@ -29,6 +102,16 @@ let
         TARGET_UID="$UID" \
         "$0" "$@"
     fi
+
+    # 0b. Enter an isolated mount namespace for bind-mounting the patched hid.dll over Wine's PE files
+    if [[ -z "''${XWAYS_NS_ACTIVE:-}" ]]; then
+      export XWAYS_NS_ACTIVE=1
+      exec unshare -m -- "$0" "$@"
+    fi
+
+    # Intercept Wine's hid.dll with our patched version to ensure Feitian/Rockey4 dongles authenticate cleanly
+    mount --bind "${patchedWineHid64}" "${pkgs.wineWow64Packages.stable}/lib/wine/x86_64-windows/hid.dll"
+    mount --bind "${patchedWineHid32}" "${pkgs.wineWow64Packages.stable}/lib/wine/i386-windows/hid.dll"
 
     # 1. Recover/Normalize Graphical Session Environment for Root
     export HOME="/root"
@@ -67,6 +150,27 @@ let
     # 2. Locate X-Ways Executable
     TARGET_EXE="''${1:-}"
 
+    # If target argument is a directory, search inside it first
+    if [[ -n "$TARGET_EXE" && -d "$TARGET_EXE" ]]; then
+      SEARCH_DIR="$TARGET_EXE"
+      TARGET_EXE=""
+      # 1st Priority in directory: 64-bit Forensics
+      FOUND=$(find "$SEARCH_DIR" -maxdepth 3 -iname "xwforensics64.exe" 2>/dev/null | head -n1 || true)
+      if [[ -n "$FOUND" ]]; then
+        TARGET_EXE="$FOUND"
+      else
+        FOUND=$(find "$SEARCH_DIR" -maxdepth 3 -iname "xwforensics.exe" 2>/dev/null | head -n1 || true)
+        if [[ -n "$FOUND" ]]; then
+          TARGET_EXE="$FOUND"
+        else
+          FOUND=$(find "$SEARCH_DIR" -maxdepth 3 \( -iname "xwinvestigator64.exe" -o -iname "xwinvestigator.exe" \) 2>/dev/null | head -n1 || true)
+          if [[ -n "$FOUND" ]]; then
+            TARGET_EXE="$FOUND"
+          fi
+        fi
+      fi
+    fi
+
     if [[ -z "$TARGET_EXE" ]]; then
       # Search common external media and Desktop locations
       SEARCH_PATHS=(
@@ -81,7 +185,7 @@ let
       # 1st Priority: 64-bit Forensics (optimal for memory-intensive forensic workloads)
       for sp in "''${SEARCH_PATHS[@]}"; do
         if [[ -d "$sp" ]]; then
-          FOUND=$(find "$sp" -maxdepth 5 -name "xwforensics64.exe" 2>/dev/null | head -n1 || true)
+          FOUND=$(find "$sp" -maxdepth 5 -iname "xwforensics64.exe" 2>/dev/null | head -n1 || true)
           if [[ -n "$FOUND" ]]; then
             TARGET_EXE="$FOUND"
             break
@@ -93,7 +197,7 @@ let
       if [[ -z "$TARGET_EXE" ]]; then
         for sp in "''${SEARCH_PATHS[@]}"; do
           if [[ -d "$sp" ]]; then
-            FOUND=$(find "$sp" -maxdepth 5 -name "xwforensics.exe" 2>/dev/null | head -n1 || true)
+            FOUND=$(find "$sp" -maxdepth 5 -iname "xwforensics.exe" 2>/dev/null | head -n1 || true)
             if [[ -n "$FOUND" ]]; then
               TARGET_EXE="$FOUND"
               break
@@ -106,7 +210,7 @@ let
       if [[ -z "$TARGET_EXE" ]]; then
         for sp in "''${SEARCH_PATHS[@]}"; do
           if [[ -d "$sp" ]]; then
-            FOUND=$(find "$sp" -maxdepth 5 \( -name "xwinvestigator64.exe" -o -name "xwinvestigator.exe" \) 2>/dev/null | head -n1 || true)
+            FOUND=$(find "$sp" -maxdepth 5 \( -iname "xwinvestigator64.exe" -o -iname "xwinvestigator.exe" \) 2>/dev/null | head -n1 || true)
             if [[ -n "$FOUND" ]]; then
               TARGET_EXE="$FOUND"
               break
