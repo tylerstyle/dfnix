@@ -5,7 +5,7 @@
 
 ---
 
-## Core Features
+## ⚡ Core Features
 
 - **5-Layer Write Blocking**:
   - **Kernel Parameters**: `systemd.gpt_auto=0` disables automatic mounting of partitions from GPT evidence drives.
@@ -28,7 +28,7 @@
 
 ---
 
-## Project Architecture
+## 📐 Project Architecture
 
 ```
 dfnix/
@@ -76,7 +76,7 @@ dfnix/
 
 ---
 
-## Forensic Workflow
+## 🛠️ Forensic Workflow
 
 ```
 [Connect Suspect Media]
@@ -108,7 +108,7 @@ dfnix/
 
 ---
 
-## DFIR Tool Suite
+## 🧰 DFIR Tool Suite
 
 | Category | Tools Included |
 | :--- | :--- |
@@ -124,7 +124,7 @@ dfnix/
 
 ---
 
-## Portable X-Ways Forensics (Wine & Dongle Support)
+## 🍷 Portable X-Ways Forensics (Wine & Dongle Support)
 
 `dfnix` includes a launcher and compatibility layer for portable **X-Ways Forensics** installations (`xwforensics64.exe` / `xwforensics.exe`), with **hardware dongle support** (Feitian Rockey4ND & Wibu CodeMeter) and **raw physical block device mapping**.
 
@@ -185,7 +185,7 @@ Because Niri is a tiling compositor, Windows applications with numerous dialogs 
 
 ---
 
-## Building & Virtualization
+## 🚀 Building & Virtualization
 
 `dfnix` supports two build and testing workflows:
 1. **VM Prototyping (`make vm`)**: Skips squashfs compression for rapid iteration during development.
@@ -193,7 +193,7 @@ Because Niri is a tiling compositor, Windows applications with numerous dialogs 
 
 ---
 
-### 1. VM Prototyping (`make vm`)
+### ⚡ 1. VM Prototyping (`make vm`)
 
 For testing desktop configurations, udev rules, or packages without waiting for squashfs compression:
 
@@ -209,7 +209,7 @@ make test-vm
 
 ---
 
-### 2. Virtualization: Desktop Workstation vs. Headless Server
+### 🖥️ 2. Virtualization: Desktop Workstation vs. Headless Server
 
 The `./scripts/run-vm.sh` runner detects the host environment:
 
@@ -258,7 +258,7 @@ make test-headless
 
 ---
 
-### 3. Building & Flashing the Live ISO
+### 💿 3. Building & Flashing the Live ISO
 
 #### A. Build the Bootable ISO
 ```bash
@@ -288,7 +288,7 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 
 ---
 
-## Desktop Keybindings (Niri)
+## ⌨️ Desktop Keybindings (Niri)
 
 | Keybinding | Action |
 | :--- | :--- |
@@ -305,6 +305,6 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 
 ---
 
-## License
+## 📜 License
 
 Distributed under the **MIT License**. Follows NIST Computer Forensic Tool Testing (CFTT) write-blocking principles.
