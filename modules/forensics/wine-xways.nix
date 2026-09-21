@@ -70,22 +70,50 @@ let
     if [[ -z "$TARGET_EXE" ]]; then
       # Search common external media and Desktop locations
       SEARCH_PATHS=(
-        "/home/nixos/Desktop"
-        "/root/Desktop"
         "/media/target"
         "/media/evidence"
         "/media"
         "/run/media"
+        "/home/nixos/Desktop"
+        "/root/Desktop"
       )
+
+      # 1st Priority: 64-bit Forensics (optimal for memory-intensive forensic workloads)
       for sp in "''${SEARCH_PATHS[@]}"; do
         if [[ -d "$sp" ]]; then
-          FOUND=$(find "$sp" -maxdepth 5 \( -name "xwforensics64.exe" -o -name "xwforensics.exe" \) 2>/dev/null | head -n1 || true)
+          FOUND=$(find "$sp" -maxdepth 5 -name "xwforensics64.exe" 2>/dev/null | head -n1 || true)
           if [[ -n "$FOUND" ]]; then
             TARGET_EXE="$FOUND"
             break
           fi
         fi
       done
+
+      # 2nd Priority: 32-bit Forensics fallback
+      if [[ -z "$TARGET_EXE" ]]; then
+        for sp in "''${SEARCH_PATHS[@]}"; do
+          if [[ -d "$sp" ]]; then
+            FOUND=$(find "$sp" -maxdepth 5 -name "xwforensics.exe" 2>/dev/null | head -n1 || true)
+            if [[ -n "$FOUND" ]]; then
+              TARGET_EXE="$FOUND"
+              break
+            fi
+          fi
+        done
+      fi
+
+      # 3rd Priority: Investigator editions fallback
+      if [[ -z "$TARGET_EXE" ]]; then
+        for sp in "''${SEARCH_PATHS[@]}"; do
+          if [[ -d "$sp" ]]; then
+            FOUND=$(find "$sp" -maxdepth 5 \( -name "xwinvestigator64.exe" -o -name "xwinvestigator.exe" \) 2>/dev/null | head -n1 || true)
+            if [[ -n "$FOUND" ]]; then
+              TARGET_EXE="$FOUND"
+              break
+            fi
+          fi
+        done
+      fi
     fi
 
     if [[ -z "$TARGET_EXE" || ! -f "$TARGET_EXE" ]]; then
@@ -101,7 +129,7 @@ let
 
     # 3. Check Feitian / CodeMeter License Dongle & Ensure Device Permissions
     echo "[*] Checking for connected forensic license dongles..."
-    chmod 0666 /dev/hidraw* /dev/usb/hiddev* 2>/dev/null || true
+    chmod 0666 /dev/hidraw* /dev/usb/hiddev* /dev/bus/usb/*/* 2>/dev/null || true
 
     DONGLE_FOUND=0
     if compgen -G "/dev/hidraw*" >/dev/null 2>&1; then
@@ -127,20 +155,40 @@ let
     fi
     WINESERVER_BIN="${pkgs.wineWow64Packages.stable}/bin/wineserver"
 
-    # Initialize Wine prefix cleanly if drive_c or system32 does not exist
-    if [[ ! -d "$WINE_DIR/drive_c/windows/system32" ]]; then
-      echo "[*] Initializing root Wine prefix (first run, please wait)..."
+    # Initialize Wine prefix cleanly if drive_c or system32 does not exist,
+    # or if winebus root PnP device tree is missing from the registry
+    if [[ ! -d "$WINE_DIR/drive_c/windows/system32" ]] || ! grep -q "WINEBUS" "$WINE_DIR/system.reg" 2>/dev/null; then
+      echo "[*] Initializing root Wine prefix with Plug-and-Play bus devices (please wait)..."
       rm -rf "$DOS_DIR" 2>/dev/null || true
-      WINEDLLOVERRIDES="mscoree,mshtml=" WINEDEBUG="-all" "$WINE_BIN" wineboot -u
+      WINEDLLOVERRIDES="mscoree,mshtml=" WINEDEBUG="-all" "$WINE_BIN" wineboot -i
       if [[ -x "$WINESERVER_BIN" ]]; then
         "$WINESERVER_BIN" -w 2>/dev/null || true
       fi
 
-      # Configure winebus for direct hidraw hardware dongle support
-      echo "[*] Configuring winebus for direct HID hardware access..."
+      # Explicitly register and configure winebus kernel service for hardware dongles
+      echo "[*] Configuring winebus and direct HID raw device access..."
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v ImagePath /t REG_EXPAND_SZ /d "system32\\drivers\\winebus.sys" /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v Type /t REG_DWORD /d 1 /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v Start /t REG_DWORD /d 2 /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v ErrorControl /t REG_DWORD /d 1 /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v Group /t REG_SZ /d "WinePlugPlay" /f >/dev/null 2>&1 || true
       WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v DisableHidraw /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
       WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v "Enable SDL" /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
+
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winehid" /v ImagePath /t REG_EXPAND_SZ /d "system32\\drivers\\winehid.sys" /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winehid" /v Type /t REG_DWORD /d 1 /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winehid" /v Start /t REG_DWORD /d 3 /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winehid" /v ErrorControl /t REG_DWORD /d 1 /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Services\\winehid" /v Group /t REG_SZ /d "WinePlugPlay" /f >/dev/null 2>&1 || true
+
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Enum\\ROOT\\WINE\\WINEBUS" /v Class /t REG_SZ /d "System" /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Enum\\ROOT\\WINE\\WINEBUS" /v ClassGUID /t REG_SZ /d "{4D36E97D-E325-11CE-BFC1-08002BE10318}" /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Enum\\ROOT\\WINE\\WINEBUS" /v DeviceDesc /t REG_SZ /d "Wine HID bus driver" /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Enum\\ROOT\\WINE\\WINEBUS" /v HardwareId /t REG_MULTI_SZ /d "root\\winebus\0" /f >/dev/null 2>&1 || true
+      WINEDEBUG="-all" "$WINE_BIN" reg add "HKLM\\System\\CurrentControlSet\\Enum\\ROOT\\WINE\\WINEBUS" /v Service /t REG_SZ /d "winebus" /f >/dev/null 2>&1 || true
+
       if [[ -x "$WINESERVER_BIN" ]]; then
+        "$WINESERVER_BIN" -k 2>/dev/null || true
         "$WINESERVER_BIN" -w 2>/dev/null || true
       fi
     fi
