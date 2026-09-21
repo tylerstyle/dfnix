@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=dfinfo Forensic Triage
+GenericName=Forensic System Triage & Fastfetch
+Comment=System hardware triage, fastfetch overview, and concise forensic documentation
+Exec=kitty --title "dfinfo - Forensic System Triage" sudo dfinfo
+Icon=utilities-system-monitor
+Terminal=false
+Type=Application
+Categories=System;Forensics;Utility;
+Keywords=forensics;triage;fastfetch;system;hardware;evidence;
+StartupNotify=true

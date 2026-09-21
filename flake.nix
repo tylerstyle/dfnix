@@ -27,6 +27,9 @@
         # Dedicated Forensic Network Operations & Triage
         dfnet = final.callPackage ./pkgs/dfnet { };
 
+        # Forensic System Triage & Fastfetch Reporter
+        dfinfo = final.callPackage ./pkgs/dfinfo { };
+
         # Volatility 3 ISF generator
         dwarf2json = final.callPackage ./pkgs/dwarf2json { };
 
@@ -45,7 +48,7 @@
           };
         in
         {
-          inherit (pkgs) dfdisk dfmount dfnet dwarf2json regripper;
+          inherit (pkgs) dfdisk dfmount dfnet dfinfo dwarf2json regripper;
           
           # Shortcut: nix build .#iso
           iso = self.nixosConfigurations.df-forensics-iso.config.system.build.isoImage;
@@ -113,6 +116,16 @@
                   icon = "network-workgroup";
                   categories = [ "System" "Network" ];
                   keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" ];
+                })
+                (pkgs.makeDesktopItem {
+                  name = "dfinfo";
+                  desktopName = "dfinfo Forensic Triage";
+                  genericName = "Forensic System Triage & Fastfetch";
+                  comment = "System hardware triage, fastfetch overview, and concise forensic documentation";
+                  exec = "kitty --title \"dfinfo - Forensic System Triage\" sudo dfinfo";
+                  icon = "utilities-system-monitor";
+                  categories = [ "System" "Forensics" "Utility" ];
+                  keywords = [ "forensics" "triage" "fastfetch" "system" "hardware" "evidence" ];
                 })
               ];
             })

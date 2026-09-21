@@ -201,6 +201,7 @@ binds {
     Mod+D           { spawn "kitty" "--title" "dfdisk - Forensic Imager" "sudo" "dfdisk"; }
     Mod+M           { spawn "kitty" "--title" "dfmount - Forensic Storage Manager" "sudo" "dfmount"; }
     Mod+N           { spawn "kitty" "--title" "dfnet - Forensic Network Operations" "sudo" "dfnet"; }
+    Mod+I           { spawn "kitty" "--title" "dfinfo - Forensic System Triage" "sudo" "dfinfo"; }
 
     // --- Window Actions ---
     Mod+Q           { close-window; }

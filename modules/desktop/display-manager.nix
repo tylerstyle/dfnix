@@ -19,6 +19,7 @@ let
      sudo dfdisk     Forensic Disk Imaging & ddrescue TUI (RAW, E01, verification)
      sudo dfmount    Forensic Storage Manager (hardware/software write-blocking)
      sudo dfnet      Forensic Network Operations (MAC spoof, SMB/NFS share mount)
+     sudo dfinfo     Forensic System Triage & Fastfetch (Hardware, Disks, Network)
      sudo nmtui      NetworkManager Connection Manager
 
    [SYSTEM COMMANDS]

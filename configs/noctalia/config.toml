@@ -15,7 +15,7 @@ corner_radius_scale = 1.0
     compact = false
     show_icons = true
     sort_by_usage = true
-    pinned = [ "dfdisk.desktop", "dfmount.desktop", "dfnet.desktop", "kitty.desktop", "dolphin.desktop" ]
+    pinned = [ "dfdisk.desktop", "dfmount.desktop", "dfnet.desktop", "dfinfo.desktop", "kitty.desktop", "dolphin.desktop" ]
 
     [shell.panel]
     transparency_mode = "soft"
@@ -33,7 +33,7 @@ order = [ "default" ]
     background_opacity = 0.65
     contact_shadow = true
     start = [ "launcher", "workspaces" ]
-    center = [ "dfdisk_btn", "dfmount_btn", "dfnet_btn" ]
+    center = [ "dfdisk_btn", "dfmount_btn", "dfnet_btn", "dfinfo_btn" ]
     end = [ "clock", "tray", "volume", "brightness", "battery", "control-center" ]
 
 [widget.dfdisk_btn]
@@ -62,6 +62,15 @@ tooltip = "Launch dfnet Forensic Network Operations (Mod+N)"
 
     [widget.dfnet_btn.actions]
     left = "exec kitty --title 'dfnet - Forensic Network Operations' sudo dfnet"
+
+[widget.dfinfo_btn]
+type = "custom_button"
+glyph = "info-circle"
+label = "dfinfo"
+tooltip = "Launch dfinfo Forensic System Triage & Fastfetch (Mod+I)"
+
+    [widget.dfinfo_btn.actions]
+    left = "exec kitty --title 'dfinfo - Forensic System Triage' sudo dfinfo"
 
 [wallpaper]
 directory = "/home/nixos/Pictures/Wallpapers"

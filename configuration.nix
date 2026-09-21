@@ -15,6 +15,10 @@ let
             then final.callPackage ../dfnet/package.nix { }
             else final.callPackage ./pkgs/dfnet { };
 
+    dfinfo = if builtins.pathExists ../dfinfo/package.nix
+             then final.callPackage ../dfinfo/package.nix { }
+             else final.callPackage ./pkgs/dfinfo { };
+
     dwarf2json = final.callPackage ./pkgs/dwarf2json { };
     regripper = final.callPackage ./pkgs/regripper { };
   };
@@ -43,6 +47,7 @@ in
     dfdisk
     dfmount
     dfnet
+    dfinfo
     firefox
     chromium
     
@@ -76,6 +81,16 @@ in
       icon = "network-workgroup";
       categories = [ "System" "Network" ];
       keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" ];
+    })
+    (makeDesktopItem {
+      name = "dfinfo";
+      desktopName = "dfinfo Forensic Triage";
+      genericName = "Forensic System Triage & Fastfetch";
+      comment = "System hardware triage, fastfetch overview, and concise forensic documentation";
+      exec = "kitty --title \"dfinfo - Forensic System Triage\" sudo dfinfo";
+      icon = "utilities-system-monitor";
+      categories = [ "System" "Forensics" "Utility" ];
+      keywords = [ "forensics" "triage" "fastfetch" "system" "hardware" "evidence" ];
     })
   ];
 

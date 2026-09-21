@@ -132,6 +132,8 @@ with lib;
       gptfdisk                # GPT partition editor
       pciutils                # lspci
       usbutils                # lsusb
+      dmidecode               # Hardware DMI/SMBIOS decoder
+      dfinfo                  # Forensic system triage & fastfetch report exporter
       lsof                    # List open files
       file                    # File magic type identification
       ripgrep                 # Fast pattern searching
