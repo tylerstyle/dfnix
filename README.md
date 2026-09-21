@@ -111,7 +111,7 @@ dfnix/
 
 | Category | Tools Included |
 | :--- | :--- |
-| **Disk Acquisition & Imaging** | `dfdisk`, `dfmount`, `libewf` (`ewfacquire`, `ewfexport`), `dcfldd`, `ddrescue`, `ddrescueview`, `afflib`, `qemu-utils` (`qemu-nbd`) |
+| **Disk Acquisition & Imaging** | `dfdisk`, `dfmount`, `xways` (Wine launcher), `libewf` (`ewfacquire`, `ewfexport`), `dcfldd`, `ddrescue`, `ddrescueview`, `afflib`, `qemu-utils` (`qemu-nbd`) |
 | **Filesystem & File Carving** | `sleuthkit` (TSK), `testdisk`, `testdisk-qt`, `foremost`, `scalpel`, `bulk_extractor`, `ext4magic`, `extundelete` |
 | **Decryption & Filesystems** | `cryptsetup` (LUKS), `dislocker` (BitLocker), `libbde`, `veracrypt`, `apfs-fuse`, `apfsprogs`, `ntfs3g`, `btrfs-progs`, `xfsprogs` |
 | **Memory Forensics** | `volatility3`, `dwarf2json` |
@@ -120,6 +120,83 @@ dfnix/
 | **Optical Media & Hardware** | `dvdplusrwtools`, `cdrtools`, `safecopy`, `f3`, `nvme-cli`, `hdparm`, `sdparm`, `sg3_utils`, `lsscsi` |
 | **Mobile & Firmware** | `binwalk`, `android-tools` (ADB/Fastboot), `libimobiledevice` |
 | **Hardware & Triage** | `smartmontools`, `parted`, `gptfdisk`, `pciutils`, `usbutils`, `btop`, `yazi`, `fastfetch` |
+
+---
+
+## 🍷 Portable X-Ways Forensics (Wine & Hardware Dongle Architecture)
+
+`dfnix` includes an out-of-the-box launcher and compatibility layer for portable **X-Ways Forensics** installations (`xwforensics64.exe` / `xwforensics.exe`), complete with **hardware security dongle passthrough** (Feitian Rockey4ND & Wibu CodeMeter) and **raw physical block device mapping**.
+
+### 1. Usage & Auto-Discovery
+
+You can launch X-Ways either via the desktop application launcher / Noctalia search (`X-Ways Forensics (Wine)`), or directly from the terminal:
+
+```bash
+# Auto-discover X-Ways on connected drives (/media/target, /media/evidence, /run/media, Desktop):
+xways
+
+# Or provide the path to your portable folder:
+xways /media/target/sde1/Fallvorlage_21.8_SR-4/Programm/
+
+# Or specify the exact executable:
+xways /media/target/sde1/Fallvorlage_21.8_SR-4/Programm/xwforensics64.exe
+```
+
+- **64-bit Priority**: Automatically defaults to `xwforensics64.exe` (optimal for memory-intensive evidence indexing and carving) with case-insensitive search, falling back to 32-bit `xwforensics.exe` or `xwinvestigator` if needed.
+- **Folder Arguments**: Accepting folder paths directly prevents path-resolution mistakes during rapid field deployments.
+
+### 2. Privilege Elevation & Raw Physical Drive Mapping
+
+Forensic triage and cloning in X-Ways require unrestricted direct access to physical storage devices:
+- **Auto-Elevation with Graphical Preservation**: If invoked by an unprivileged user, `xways` auto-elevates to `root` via `sudo` while transparently preserving Wayland (`WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`) and X11 (`DISPLAY`, `XAUTHORITY`, `xhost`) credentials so the GUI renders without display errors.
+- **Target Drive Write Permissions**: External drives mounted by `dfmount` under `/media/target` are owned by `root:root`. Running as root ensures X-Ways has full write access for case logs, temp folders, and image output.
+- **Raw Disk Block Mapping (`\\.\PhysicalDriveX`)**: Physical drives attached to the system (`/dev/sda`, `/dev/sdb`, `/dev/nvme0n1`, etc.) are dynamically linked into Wine's `dosdevices` as raw physical drives (`d::`, `f::`, `g::`, etc.). Within X-Ways, choose **File -> Open Drive / Physical Device** to inspect, hash, or clone raw media directly through Wine.
+- **Convenience DOS Mappings**:
+  - `t:` -> `/media/target` (Destination evidence storage)
+  - `e:` -> `/media/evidence` (Mounted suspect media)
+  - `r:` -> `/run/media` (Removable media)
+  - `c:` -> `/root/.wine/drive_c` (Wine virtual C: drive)
+  - `z:` -> `/` (Host root filesystem)
+
+### 3. Hardware Dongle Support & The `HidD_FlushQueue` Wine Patch
+
+#### The Problem & Root Cause
+When launching X-Ways under standard Wine releases with a **Feitian Technologies Rockey4ND** license dongle (`096e:0006`, USB HID raw device) inserted:
+1. `winebus.sys` and `hidclass.sys` successfully enumerated `/dev/hidraw0`.
+2. X-Ways opened the dongle handle and sent the initial Rockey4 Find command (`0x38`) using `HidD_SetFeature`.
+3. Right after sending the feature report, the Rockey4ND communication library called `HidD_FlushQueue(hDevice)` to purge pending input reports before reading the challenge response.
+4. In Wine, `HidD_FlushQueue` sends `IOCTL_HID_FLUSH_QUEUE` (`0xb0197`) to the driver (`hidclass.sys/pdo_ioctl`).
+5. In upstream Wine (`dlls/hidclass.sys/pdo.c`), index 6 (`0xb0197`) was **unimplemented**, dropping into the default unsupported branch:
+   ```text
+   fixme:hid:pdo_ioctl Unsupported ioctl 0xb0197 (device=b access=0 func=65 method=3)
+   ```
+   completing the IRP with `STATUS_NOT_SUPPORTED` (`0xc00000bb`).
+6. Because `HidD_FlushQueue()` returned `FALSE` (`0`), the Rockey4ND SDK assumed hardware communication had failed, aborted after 4 retries, closed the device handle, and opened the modal dialog:
+   ```text
+   "Waiting for dongle..."
+   ```
+
+#### Why Standard Prefix DLL Overrides (`WINEDLLOVERRIDES`) Did Not Work
+Wine hardcodes its own compile-time library path (`dll_dir`, e.g. `/nix/store/...-wine-wow64/lib/wine`) at index 0 of `dll_paths` in `ntdll.so`. Wine's loader resolves builtin PE DLLs directly from `/lib/wine/x86_64-windows/` rather than the Wine prefix's `drive_c/windows/system32/`. Overriding `hid=n` or setting `WINEDLLPATH` caused Wine to reject the DLL or fail with `c0000135` (`STATUS_DLL_NOT_FOUND`).
+
+#### The `dfnix` Solution: Dynamic PE Patcher + Isolated Mount Namespace
+In `modules/forensics/wine-xways.nix`:
+1. **Zero Compilation Time (`pePatchScript`)**:
+   - Rather than recompiling all of Wine from source (~45 minutes), a small Python derivation dynamically parses the PE Export Table of Wine's prebuilt `hid.dll` (both 64-bit and 32-bit).
+   - It locates the `HidD_FlushQueue` export by name and patches its entry point with immediate `TRUE` return opcodes:
+     - 64-bit: `b8 01 00 00 00 c3` (`mov $1, %eax; ret`)
+     - 32-bit: `b8 01 00 00 00 c2 04 00` (`mov $1, %eax; ret $4`)
+   - Builds in **under 2 seconds** using the prebuilt Nix binary cache.
+2. **Transparent In-Memory Namespace Bind (`unshare -m`)**:
+   - When `xways` launches as root, it enters a private Linux mount namespace (`unshare -m`).
+   - Inside the namespace, it bind-mounts the patched `hid.dll` directly over Wine's PE files in `/nix/store`:
+     - `mount --bind ${patchedWineHid64} ${pkgs.wineWow64Packages.stable}/lib/wine/x86_64-windows/hid.dll`
+     - `mount --bind ${patchedWineHid32} ${pkgs.wineWow64Packages.stable}/lib/wine/i386-windows/hid.dll`
+   - **Zero Host Mutation**: The immutable `/nix/store` on disk remains completely untouched. The bind-mount is strictly in-memory, isolated to the X-Ways session, and automatically disappears when X-Ways exits.
+3. **Verified Cryptographic Handshake**:
+   - `HidD_FlushQueue` returns `TRUE`.
+   - The Rockey4ND SDK proceeds immediately with the cryptographic challenge-response sequence (`HidD_SetFeature` -> `HidD_GetFeature`), receiving status `5a 00 00 00 00` (success).
+   - X-Ways starts without prompt or delay.
 
 ---
 
