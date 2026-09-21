@@ -158,45 +158,12 @@ Forensic triage and cloning in X-Ways require unrestricted direct access to phys
   - `c:` -> `/root/.wine/drive_c` (Wine virtual C: drive)
   - `z:` -> `/` (Host root filesystem)
 
-### 3. Hardware Dongle Support & The `HidD_FlushQueue` Wine Patch
+### 3. Hardware Dongle Support
 
-#### The Problem & Root Cause
-When launching X-Ways under standard Wine releases with a **Feitian Technologies Rockey4ND** license dongle (`096e:0006`, USB HID raw device) inserted:
-1. `winebus.sys` and `hidclass.sys` successfully enumerated `/dev/hidraw0`.
-2. X-Ways opened the dongle handle and sent the initial Rockey4 Find command (`0x38`) using `HidD_SetFeature`.
-3. Right after sending the feature report, the Rockey4ND communication library called `HidD_FlushQueue(hDevice)` to purge pending input reports before reading the challenge response.
-4. In Wine, `HidD_FlushQueue` sends `IOCTL_HID_FLUSH_QUEUE` (`0xb0197`) to the driver (`hidclass.sys/pdo_ioctl`).
-5. In upstream Wine (`dlls/hidclass.sys/pdo.c`), index 6 (`0xb0197`) was **unimplemented**, dropping into the default unsupported branch:
-   ```text
-   fixme:hid:pdo_ioctl Unsupported ioctl 0xb0197 (device=b access=0 func=65 method=3)
-   ```
-   completing the IRP with `STATUS_NOT_SUPPORTED` (`0xc00000bb`).
-6. Because `HidD_FlushQueue()` returned `FALSE` (`0`), the Rockey4ND SDK assumed hardware communication had failed, aborted after 4 retries, closed the device handle, and opened the modal dialog:
-   ```text
-   "Waiting for dongle..."
-   ```
+Hardware security dongles (**Feitian Technologies Rockey4ND** and **Wibu-Systems CodeMeter**) are supported out of the box. Dongle detection and communication work seamlessly thanks to an automated, low-overhead PE patch for Wine's HID subsystem (`HidD_FlushQueue`) combined with ephemeral Linux mount namespaces.
 
-#### Why Standard Prefix DLL Overrides (`WINEDLLOVERRIDES`) Did Not Work
-Wine hardcodes its own compile-time library path (`dll_dir`, e.g. `/nix/store/...-wine-wow64/lib/wine`) at index 0 of `dll_paths` in `ntdll.so`. Wine's loader resolves builtin PE DLLs directly from `/lib/wine/x86_64-windows/` rather than the Wine prefix's `drive_c/windows/system32/`. Overriding `hid=n` or setting `WINEDLLPATH` caused Wine to reject the DLL or fail with `c0000135` (`STATUS_DLL_NOT_FOUND`).
+> 📖 **Deep Technical Architecture**: For the full root cause analysis, PE export table patching mechanics, and mount namespace implementation, refer to the dedicated guide: [**`winefix.md`**](file:///home/df/git/dfnix/winefix.md).
 
-#### The `dfnix` Solution: Dynamic PE Patcher + Isolated Mount Namespace
-In `modules/forensics/wine-xways.nix`:
-1. **Zero Compilation Time (`pePatchScript`)**:
-   - Rather than recompiling all of Wine from source (~45 minutes), a small Python derivation dynamically parses the PE Export Table of Wine's prebuilt `hid.dll` (both 64-bit and 32-bit).
-   - It locates the `HidD_FlushQueue` export by name and patches its entry point with immediate `TRUE` return opcodes:
-     - 64-bit: `b8 01 00 00 00 c3` (`mov $1, %eax; ret`)
-     - 32-bit: `b8 01 00 00 00 c2 04 00` (`mov $1, %eax; ret $4`)
-   - Builds in **under 2 seconds** using the prebuilt Nix binary cache.
-2. **Transparent In-Memory Namespace Bind (`unshare -m`)**:
-   - When `xways` launches as root, it enters a private Linux mount namespace (`unshare -m`).
-   - Inside the namespace, it bind-mounts the patched `hid.dll` directly over Wine's PE files in `/nix/store`:
-     - `mount --bind ${patchedWineHid64} ${pkgs.wineWow64Packages.stable}/lib/wine/x86_64-windows/hid.dll`
-     - `mount --bind ${patchedWineHid32} ${pkgs.wineWow64Packages.stable}/lib/wine/i386-windows/hid.dll`
-   - **Zero Host Mutation**: The immutable `/nix/store` on disk remains completely untouched. The bind-mount is strictly in-memory, isolated to the X-Ways session, and automatically disappears when X-Ways exits.
-3. **Verified Cryptographic Handshake**:
-   - `HidD_FlushQueue` returns `TRUE`.
-   - The Rockey4ND SDK proceeds immediately with the cryptographic challenge-response sequence (`HidD_SetFeature` -> `HidD_GetFeature`), receiving status `5a 00 00 00 00` (success).
-   - X-Ways starts without prompt or delay.
 
 ### 4. Window Management in Niri (Floating Dialogs & Virtual Desktop Mode)
 
@@ -244,12 +211,12 @@ make test-vm
 
 ---
 
-### 🖥️ 2. Virtualization on Workstation (`hpfury`) vs. Server (`hp-nix`)
+### 🖥️ 2. Virtualization: Desktop Workstation vs. Headless Server
 
 The integrated runner `./scripts/run-vm.sh` automatically detects the host environment and configures optimal display and input drivers:
 
-#### A. Interactive Desktop Workstation (`hpfury` / `nixos_df_r`)
-When executed within an active Wayland or X11 session:
+#### A. Interactive Desktop Workstation (Local GUI)
+When executed within an active Wayland or X11 session on a desktop machine:
 - **Display**: Automatically launches a native GUI window using hardware KVM acceleration (`-vga virtio`).
 - **Cursor**: Seamless pointer capture and release via `-device usb-tablet`.
 - **Drives**: Automatically attaches both a simulated suspect evidence drive (`test-evidence.raw`, write-blocked) and a destination storage drive (`test-target.raw`, writable for `dfmount` and `dfdisk`).
@@ -262,13 +229,13 @@ make test-vm
 make test-qemu
 ```
 
-#### B. Headless Application Server (`hp-nix` / Remote SSH)
-When run over SSH on a headless server without `$DISPLAY`:
+#### B. Headless Server (Remote SSH)
+When run over SSH on a headless remote server without `$DISPLAY`:
 - **Auto-Headless**: Automatically starts **SPICE** (port `5930`), **VNC** (port `5901`), and guest **SSH forwarding** (port `2222`).
-- **Zero GUI Crashing**: Will never fail with display errors.
+- **Zero GUI Crashing**: Operates without requiring an X11/Wayland display server on the host.
 
 ```bash
-# Launch on hp-nix (runs in headless mode automatically):
+# Launch on remote server (runs in headless mode automatically):
 make test-vm
 # or for the full ISO:
 make test-qemu
@@ -276,27 +243,28 @@ make test-qemu
 make test-headless
 ```
 
-##### Connecting to the VM on `hp-nix` from `hpfury`:
+##### Connecting to the VM on a Remote Server:
 - **Option 1: SPICE (Recommended — dynamic resolution, clipboard & audio)**:
   ```bash
-  remote-viewer spice://hp-nix:5930
+  remote-viewer spice://<server-ip>:5930
   ```
 - **Option 2: VNC**:
   ```bash
-  vncviewer hp-nix:5901
+  vncviewer <server-ip>:5901
   ```
 - **Option 3: SSH Tunneling (if ports are firewalled)**:
   ```bash
-  ssh -L 5901:127.0.0.1:5901 -L 5930:127.0.0.1:5930 hp-nix
-  # Then locally on hpfury:
+  ssh -L 5901:127.0.0.1:5901 -L 5930:127.0.0.1:5930 user@<server-ip>
+  # Then locally on your workstation:
   remote-viewer spice://127.0.0.1:5930
   ```
 - **Option 4: Direct SSH Console Triage (No GUI required)**:
   ```bash
-  ssh -p 2222 nixos@hp-nix
+  ssh -p 2222 nixos@<server-ip>
   # Inside guest: passwordless sudo for dfdisk, dfmount, dfnet
   sudo dfdisk
   ```
+
 
 ---
 

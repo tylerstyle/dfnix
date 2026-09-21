@@ -3,8 +3,8 @@
 # dfnix Virtualization & Fast Prototyping Runner
 #
 # Supports:
-#   1. Local GUI Workstation (e.g. hpfury / nixos_df_r) with VirtIO-GPU & Tablet
-#   2. Headless Server (e.g. hp-nix) with SPICE (5930), VNC (5901), & SSH (2222)
+#   1. Local GUI Workstation with VirtIO-GPU & Tablet
+#   2. Headless Server with SPICE (5930), VNC (5901), & SSH (2222)
 #   3. Instant NixOS VM (result-vm/bin/run-*-vm) for fast iteration (no ISO build)
 #   4. Full Live ISO Testing (result-iso/iso/*.iso) with simulated evidence drives
 # ==============================================================================
@@ -34,8 +34,8 @@ Modes:
                      (Fastest prototyping: skips squashfs compression and ISO packaging)
 
 Display Options:
-  --gui              Force native graphical window (for hpfury / local desktop)
-  --headless         Force headless mode with SPICE, VNC, and SSH forward (for hp-nix)
+  --gui              Force native graphical window (for local desktop)
+  --headless         Force headless mode with SPICE, VNC, and SSH forward (for remote server)
   --vnc              Headless with VNC only (port 5901)
   --spice            Headless with SPICE only (port 5930)
 
@@ -48,10 +48,10 @@ Hardware Options:
   -h, --help         Show this help message
 
 Examples:
-  # Fast prototyping on hp-nix (headless):
+  # Fast prototyping on remote server (headless):
   ./scripts/run-vm.sh --headless
 
-  # Local interactive testing on hpfury:
+  # Local interactive testing on desktop workstation:
   ./scripts/run-vm.sh --gui
 
   # Rapid iteration with instant NixOS VM:
@@ -188,7 +188,7 @@ if [ "$MODE" = "vm" ]; then
     if [ ! -d "result-vm/bin" ] || [ ! -e "result-vm" ]; then
         echo "[-] Error: VM script not found in result-vm/bin/"
         if [ -L "result-vm" ] && [ ! -e "result-vm" ]; then
-            echo "    * Note: result-vm is a dangling symlink from another machine (e.g. hp-nix)."
+            echo "    * Note: result-vm is a dangling symlink from another build host."
         fi
         echo "    Please build the VM on this host first:"
         echo "    Run: make vm (or nix-build -A vm -o result-vm)"
@@ -289,7 +289,7 @@ else
     echo "    * SPICE: remote-viewer spice://${HOST_IP}:${SPICE_PORT}"
     echo "    * VNC  : vncviewer ${HOST_IP}:${VNC_DISPLAY_NUM}"
     echo "    * SSH  : ssh -p ${SSH_PORT} nixos@localhost (or nixos@${HOST_IP})"
-    echo "    * SSH Tunnel (from hpfury): ssh -L ${VNC_DISPLAY_NUM}:127.0.0.1:${VNC_DISPLAY_NUM} -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
+    echo "    * SSH Tunnel (from local workstation): ssh -L ${VNC_DISPLAY_NUM}:127.0.0.1:${VNC_DISPLAY_NUM} -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
     echo "------------------------------------------------------------------------"
 fi
 

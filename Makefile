@@ -15,7 +15,7 @@ help:
 	@echo "  make check          Verify Nix syntax and evaluate system closure"
 	@echo ""
 	@echo "Virtualization & Testing Targets:"
-	@echo "  make test-qemu      Run built ISO in QEMU (auto GUI on hpfury, SPICE/VNC on hp-nix)"
+	@echo "  make test-qemu      Run built ISO in QEMU (auto GUI on desktop, SPICE/VNC on headless server)"
 	@echo "  make test-vm        Run instant VM for rapid prototyping (auto GUI or headless)"
 	@echo "  make test-headless  Force headless QEMU with SPICE (5930), VNC (5901), & SSH (2222)"
 	@echo ""
