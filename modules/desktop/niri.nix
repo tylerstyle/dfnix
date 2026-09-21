@@ -61,6 +61,7 @@ with lib;
       networkmanagerapplet
       libnotify
       xinit
+      xhost
     ];
 
     # 4. System-wide configuration fallbacks (checks /etc/niri and /etc/xdg)
