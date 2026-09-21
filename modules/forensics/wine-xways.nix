@@ -44,12 +44,14 @@ let
 
     # 2. Check Feitian License Dongle
     echo "[*] Checking for connected license dongle..."
-    if [ -e /dev/hidraw* ]; then
+    if compgen -G "/dev/hidraw*" >/dev/null 2>&1; then
       if grep -q "096e" /sys/class/hidraw/*/device/uevent 2>/dev/null; then
         echo "[✓] Feitian HID security dongle detected (096e)."
       else
         echo "[!] Note: Feitian dongle not detected. Soft license or alternate dongle may be used."
       fi
+    else
+      echo "[!] Note: No HID raw devices detected."
     fi
 
     # 3. Setup Wine DOS Devices for Physical Drives
@@ -73,11 +75,15 @@ let
       fi
     done
 
-    # 4. Launch X-Ways under 64-bit Wine
+    # 4. Launch X-Ways under Wine
     echo "[*] Launching $EXE_NAME under Wine..."
     cd "$EXE_DIR"
     export WINEDEBUG="-all"
-    exec ${pkgs.wineWow64Packages.stable}/bin/wine64 "$EXE_NAME" "$@"
+    WINE_BIN="${pkgs.wineWow64Packages.stable}/bin/wine"
+    if [ ! -x "$WINE_BIN" ] && [ -x "${pkgs.wineWow64Packages.stable}/bin/wine64" ]; then
+      WINE_BIN="${pkgs.wineWow64Packages.stable}/bin/wine64"
+    fi
+    exec "$WINE_BIN" "$EXE_NAME" "$@"
   '';
 in
 {
