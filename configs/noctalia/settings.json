@@ -21,6 +21,7 @@
             "dfdisk.desktop",
             "dfmount.desktop",
             "dfnet.desktop",
+            "dfinfo.desktop",
             "kitty.desktop",
             "dolphin.desktop"
         ],
@@ -256,6 +257,7 @@
             "dfdisk.desktop",
             "dfmount.desktop",
             "dfnet.desktop",
+            "dfinfo.desktop",
             "kitty.desktop",
             "dolphin.desktop"
         ],

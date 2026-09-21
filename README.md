@@ -1,7 +1,7 @@
 # dfnix 🔍💿
 > **Declarative, Bit-for-Bit Reproducible Live NixOS Distribution Engineered for Digital Forensics and Incident Response (DFIR) Field Operations.**
 
-`dfnix` is a specialized, air-gapped, live bootable NixOS ISO tailored for digital forensic field acquisition, damaged media triage, and incident response. It integrates **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** with an asymmetric, NIST CFTT-compliant software write-blocking architecture, a dual desktop environment featuring **Niri + Noctalia** (Wayland) alongside a lightweight **XFCE** (X11) fallback, and dedicated standalone tools: **`dfmount`** (storage manager) and **`dfnet`** (network operations).
+`dfnix` is a specialized, air-gapped, live bootable NixOS ISO tailored for digital forensic field acquisition, damaged media triage, and incident response. It integrates **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** with an asymmetric, NIST CFTT-compliant software write-blocking architecture, a dual desktop environment featuring **Niri + Noctalia** (Wayland) alongside a lightweight **XFCE** (X11) fallback, and dedicated standalone tools: **`dfmount`** (storage manager), **`dfnet`** (network operations), and **`dfinfo`** (system triage & fastfetch reporting).
 
 ---
 
@@ -18,7 +18,7 @@
   - Examiners can selectively **unblock destination drives** or mount them writeable under `/media/target` so `dfdisk` can write `.E01` or `.raw` images.
 - **Dual Desktop Experience**:
   - **Primary**: **Niri** (modern scrollable-tiling Wayland compositor) with the **Noctalia** top bar and shell, customized dark theme, and high-DPI fluidity.
-  - **Top Bar & TUI Integration**: Instant keyboard-driven access to `dfdisk`, `dfmount`, and `dfnet`.
+  - **Top Bar & TUI Integration**: Instant keyboard-driven access to `dfdisk`, `dfmount`, `dfnet`, and `dfinfo`.
   - **Fallback**: **XFCE** (X11) with automounting strictly disabled, providing guaranteed boot on vintage laptops, legacy BIOS, or GPUs without Wayland support.
   - **Desktop Branding**: Pre-configured with the custom `DF_K-BG02.png` forensic wallpaper and auto-login to session `niri`.
 - **Field-Ready Live Architecture**:
@@ -69,7 +69,8 @@ dfnix/
         ├── wallpaper.png           # DF_K-BG02.png forensic desktop wallpaper
         ├── dfdisk.desktop          # Application launcher entry for dfdisk
         ├── dfmount.desktop         # Application launcher entry for dfmount
-        └── dfnet.desktop           # Application launcher entry for dfnet
+        ├── dfnet.desktop           # Application launcher entry for dfnet
+        └── dfinfo.desktop          # Application launcher entry for dfinfo
 ```
 
 ---
@@ -239,7 +240,9 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 | Keybinding | Action |
 | :--- | :--- |
 | `Mod+D` | Launch **dfdisk** Forensic Imager in Kitty (with sudo) |
-| `Mod+M` | Launch **df-mount** Forensic Storage Manager GUI |
+| `Mod+M` | Launch **dfmount** Forensic Storage Manager GUI (with sudo) |
+| `Mod+N` | Launch **dfnet** Forensic Network Operations in Kitty (with sudo) |
+| `Mod+I` | Launch **dfinfo** Forensic System Triage & Fastfetch in Kitty (with sudo) |
 | `Mod+Space` | Toggle Noctalia Application Launcher |
 | `Mod+S` | Toggle Noctalia Control Center |
 | `Mod+Return` | Launch Kitty Terminal |

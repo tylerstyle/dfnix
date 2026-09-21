@@ -28,6 +28,10 @@ in
           then pkgs.callPackage ../dfnet/package.nix { }
           else pkgs.callPackage ./pkgs/dfnet { };
 
+  dfinfo = if builtins.pathExists ../dfinfo/package.nix
+           then pkgs.callPackage ../dfinfo/package.nix { }
+           else pkgs.callPackage ./pkgs/dfinfo { };
+
   dwarf2json = pkgs.callPackage ./pkgs/dwarf2json { };
   regripper = pkgs.callPackage ./pkgs/regripper { };
 
