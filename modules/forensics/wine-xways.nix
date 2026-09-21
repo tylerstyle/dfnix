@@ -147,8 +147,52 @@ let
       xhost +si:localuser:root >/dev/null 2>&1 || true
     fi
 
-    # 2. Locate X-Ways Executable
-    TARGET_EXE="''${1:-}"
+    # 2. Parse Options and Locate X-Ways Executable
+    USE_DESKTOP="''${XWAYS_DESKTOP:-0}"
+    DESKTOP_RES="''${XWAYS_DESKTOP_RES:-}"
+    TARGET_ARG=""
+    PASSTHROUGH_ARGS=()
+
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -d|--desktop)
+          USE_DESKTOP=1
+          shift
+          ;;
+        -r|--res|--resolution)
+          DESKTOP_RES="$2"
+          shift 2
+          ;;
+        --desktop=*)
+          USE_DESKTOP=1
+          DESKTOP_RES="''${1#*=}"
+          shift
+          ;;
+        -h|--help)
+          echo "Usage: xways [options] [/path/to/portable/folder or .exe] [xways args...]"
+          echo ""
+          echo "Options:"
+          echo "  -d, --desktop                Run in Wine Virtual Desktop container (isolates all popups/dialogs)"
+          echo "  -r, --res, --resolution WxH  Set virtual desktop resolution (e.g. 1920x1080). Auto-detects display if omitted"
+          echo "  -h, --help                   Show this help message"
+          echo ""
+          echo "Environment Variables:"
+          echo "  XWAYS_DESKTOP=1              Default to virtual desktop mode"
+          echo "  XWAYS_DESKTOP_RES=WxH        Default resolution for virtual desktop"
+          exit 0
+          ;;
+        *)
+          if [[ -z "$TARGET_ARG" && ( -d "$1" || -f "$1" ) ]]; then
+            TARGET_ARG="$1"
+          else
+            PASSTHROUGH_ARGS+=("$1")
+          fi
+          shift
+          ;;
+      esac
+    done
+
+    TARGET_EXE="$TARGET_ARG"
 
     # If target argument is a directory, search inside it first
     if [[ -n "$TARGET_EXE" && -d "$TARGET_EXE" ]]; then
@@ -222,7 +266,7 @@ let
 
     if [[ -z "$TARGET_EXE" || ! -f "$TARGET_EXE" ]]; then
       echo "[!] Error: No X-Ways executable found."
-      echo "Usage: xways /path/to/xwforensics64.exe"
+      echo "Usage: xways [options] /path/to/xwforensics64.exe"
       echo "Or ensure your portable X-Ways folder is on Desktop or mounted in /media/target."
       exit 1
     fi
@@ -336,10 +380,30 @@ let
     done
 
     # 5. Launch X-Ways under Wine
-    echo "[*] Launching $EXE_NAME under Wine (as root)..."
     cd "$EXE_DIR"
     export WINEDEBUG="-all"
-    exec "$WINE_BIN" "$EXE_NAME" "$@"
+
+    if [[ "$USE_DESKTOP" -eq 1 ]]; then
+      if [[ -z "$DESKTOP_RES" ]]; then
+        DETECTED_RES=""
+        if command -v niri >/dev/null 2>&1; then
+          DETECTED_RES=$(niri msg outputs 2>/dev/null | grep -m1 "Logical size:" | awk '{print $3}' || true)
+          if [[ -z "$DETECTED_RES" ]]; then
+            DETECTED_RES=$(niri msg outputs 2>/dev/null | grep -m1 "Current mode:" | awk '{print $3}' || true)
+          fi
+        fi
+        if [[ -z "$DETECTED_RES" ]] && command -v xrandr >/dev/null 2>&1 && [[ -n "''${DISPLAY:-}" ]]; then
+          DETECTED_RES=$(xrandr 2>/dev/null | grep -m1 '\*' | awk '{print $1}' || true)
+        fi
+        DESKTOP_RES="''${DETECTED_RES:-1920x1080}"
+      fi
+
+      echo "[*] Launching $EXE_NAME in Wine Virtual Desktop (XWays, $DESKTOP_RES)..."
+      exec "$WINE_BIN" explorer /desktop="XWays,$DESKTOP_RES" "$EXE_NAME" "''${PASSTHROUGH_ARGS[@]}"
+    else
+      echo "[*] Launching $EXE_NAME under Wine (native Wayland / floating popups)..."
+      exec "$WINE_BIN" "$EXE_NAME" "''${PASSTHROUGH_ARGS[@]}"
+    fi
   '';
 in
 {
@@ -367,6 +431,22 @@ in
         icon = "system-search";
         categories = [ "System" "Utility" ];
         keywords = [ "xways" "forensics" "hex" "carving" "evidence" ];
+        actions = {
+          "virtual-desktop" = {
+            name = "Launch in Virtual Desktop";
+            exec = "xways --desktop";
+          };
+        };
+      })
+      (pkgs.makeDesktopItem {
+        name = "xways-desktop";
+        desktopName = "X-Ways Forensics (Virtual Desktop)";
+        genericName = "Forensic Analysis Suite (Virtual Desktop)";
+        comment = "Launch portable X-Ways Forensics inside an emulated Windows desktop container (isolated popups)";
+        exec = "xways --desktop";
+        icon = "system-search";
+        categories = [ "System" "Utility" ];
+        keywords = [ "xways" "forensics" "desktop" "wine" ];
       })
     ];
 

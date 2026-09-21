@@ -171,6 +171,34 @@ window-rule {
     draw-border-with-background false
 }
 
+// --- X-Ways Forensics & Wine Window Rules ---
+// Float all secondary dialogs, popups, progress dialogs, and helper windows
+window-rule {
+    match app-id=r#"(?i)xwforensics|xwinvestigator|winhex"#
+    exclude title=r#"(?i)^X-Ways (Forensics|Investigator)( \d.*|$)|^WinHex( \d.*|$)"#
+    open-floating true
+}
+
+// Float dialogs if app-id is reported generically as "wine"
+window-rule {
+    match app-id=r#"(?i)^wine$"# title=r#"(?i)^(X-Ways|WinHex|Warning|Error|Information|Notice|Progress|Confirm|Options|Search|Directory|Viewer|Details|Volume Snapshot|Case Properties|Select|Extract|Enter|Font).*"#
+    exclude title=r#"(?i)^X-Ways (Forensics|Investigator)( \d.*|$)|^WinHex( \d.*|$)"#
+    open-floating true
+}
+
+// Open main X-Ways / WinHex window with full column width in tiling layout
+window-rule {
+    match app-id=r#"(?i)xwforensics|xwinvestigator|winhex"# title=r#"(?i)^X-Ways (Forensics|Investigator)( \d.*|$)|^WinHex( \d.*|$)"#
+    default-column-width { proportion 1.0; }
+}
+
+// Wine Virtual Desktop container (when launched with xways --desktop)
+window-rule {
+    match title=r#"^XWays$"#
+    match title=r#"^Wine desktop$"#
+    open-maximized true
+}
+
 debug {
     honor-xdg-activation-with-invalid-serial
 }

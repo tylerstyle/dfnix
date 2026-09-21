@@ -198,6 +198,25 @@ In `modules/forensics/wine-xways.nix`:
    - The Rockey4ND SDK proceeds immediately with the cryptographic challenge-response sequence (`HidD_SetFeature` -> `HidD_GetFeature`), receiving status `5a 00 00 00 00` (success).
    - X-Ways starts without prompt or delay.
 
+### 4. Window Management in Niri (Floating Dialogs & Virtual Desktop Mode)
+
+By default in tiling window managers, Windows applications often scatter modal dialogs, progress windows, and tooltips into separate tiled columns. `dfnix` solves this with a hybrid approach:
+
+1. **Native Floating Rules (Default)**:
+   Niri (`configs/niri/config.kdl`) is pre-configured with rules matching X-Ways (`xwforensics`, `xwinvestigator`, `winhex`). The main forensics window opens with full column width in the tiling layout, while all secondary dialogs (Volume Snapshot, Directory Browser Options, Search, Error/Warning boxes, Progress bars) automatically open as **floating windows** on top of the main application.
+
+2. **Wine Virtual Desktop Mode (`--desktop` / `-d`)**:
+   For examiners who prefer an isolated, 100% classic Windows desktop experience where all popups, context menus, and hover tooltips remain strictly contained inside a single window:
+   ```bash
+   # Launch in Wine Virtual Desktop (auto-detects active monitor resolution):
+   xways --desktop
+
+   # Or specify custom resolution:
+   xways --desktop=2560x1440
+   # or: xways -d -r 1920x1080 /path/to/folder
+   ```
+   A dedicated application entry **X-Ways Forensics (Virtual Desktop)** is also available directly in the Noctalia application launcher (`Mod+Space`).
+
 ---
 
 ## 🚀 Building, Fast Prototyping & Virtualization
