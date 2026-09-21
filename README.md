@@ -20,7 +20,7 @@
   - **Primary**: **Niri** (modern scrollable-tiling Wayland compositor) with the **Noctalia** top bar and shell, customized dark theme, and high-DPI fluidity.
   - **Top Bar & TUI Integration**: Instant keyboard-driven access to `dfdisk`, `dfmount`, `dfnet`, and `dfinfo`.
   - **Fallback**: **XFCE** (X11) with automounting strictly disabled, providing guaranteed boot on vintage laptops, legacy BIOS, or GPUs without Wayland support.
-  - **Desktop Branding**: Pre-configured with the custom `DF_K-BG02.png` forensic wallpaper and auto-login to session `niri`.
+  - **Desktop Branding**: Pre-configured with dynamic digital forensics 4K wallpapers, automated rotation, and Noctalia wallpaper-adaptive theming.
 - **Field-Ready Live Architecture**:
   - **`copytoram` Boot Mode**: The SquashFS image decompresses entirely into RAM during early boot. Once loaded, **the bootable USB drive can be safely ejected**, completely freeing up the USB bus for high-throughput evidence imaging.
   - **`zstd -Xcompression-level 19`**: Delivers decompression throughput exceeding 1.5 GB/s, drastically cutting boot times.
@@ -66,7 +66,7 @@ dfnix/
     │   ├── config.toml             # Noctalia shell configuration, top bar custom buttons, launcher
     │   └── settings.toml           # Noctalia state & wallpaper presets
     └── assets/
-        ├── wallpaper.png           # DF_K-BG02.png forensic desktop wallpaper
+        ├── wallpapers/             # Curated digital forensics 4K wallpapers with automated rotation
         ├── dfdisk.desktop          # Application launcher entry for dfdisk
         ├── dfmount.desktop         # Application launcher entry for dfmount
         ├── dfnet.desktop           # Application launcher entry for dfnet

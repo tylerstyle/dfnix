@@ -77,19 +77,25 @@ directory = "/home/nixos/Pictures/Wallpapers"
 enabled = true
 fill_color = "#121414"
 fill_mode = "crop"
-transition_on_startup = false
+transition_on_startup = true
 
     [wallpaper.automation]
-    enabled = false
+    enabled = true
+    interval = 300
+    order = "random"
+    recursive = true
 
     [wallpaper.default]
-    path = "/home/nixos/Pictures/DF_K-BG02.png"
+    path = "/home/nixos/Pictures/Wallpapers/digitale-forensik.jpg"
 
     [wallpaper.last]
-    path = "/home/nixos/Pictures/DF_K-BG02.png"
+    path = "/home/nixos/Pictures/Wallpapers/digitale-forensik.jpg"
 
 [theme]
 builtin = "Noctalia"
 mode = "dark"
 source = "wallpaper"
 wallpaper_scheme = "m3-content"
+
+    [theme.templates]
+    builtin_ids = [ "btop", "gtk3", "gtk4", "kitty", "niri", "starship" ]

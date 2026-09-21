@@ -76,7 +76,7 @@ with lib;
       "xdg/noctalia/config.toml".source = ../../configs/noctalia/config.toml;
       "xdg/noctalia/settings.toml".source = ../../configs/noctalia/settings.toml;
       "xdg/kitty/kitty.conf".source = ../../configs/kitty/kitty.conf;
-      "xdg/dfnix/wallpaper.png".source = ../../configs/assets/wallpaper.png;
+      "xdg/dfnix/wallpapers".source = ../../configs/assets/wallpapers;
       "starship.toml".source = ../../configs/starship/starship.toml;
     };
 
@@ -91,7 +91,6 @@ with lib;
       "d /home/nixos/.local/state 0755 nixos users -"
       "d /home/nixos/.local/state/noctalia 0755 nixos users -"
       "d /home/nixos/Pictures 0755 nixos users -"
-      "d /home/nixos/Pictures/Wallpapers 0755 nixos users -"
 
       # Niri configs
       "C /home/nixos/.config/niri/config.kdl 0644 nixos users - ${../../configs/niri/config.kdl}"
@@ -107,9 +106,8 @@ with lib;
       "C /home/nixos/.config/kitty/kitty.conf 0644 nixos users - ${../../configs/kitty/kitty.conf}"
       "C /home/nixos/.config/starship.toml 0644 nixos users - ${../../configs/starship/starship.toml}"
 
-      # Wallpaper
-      "C /home/nixos/Pictures/DF_K-BG02.png 0644 nixos users - ${../../configs/assets/wallpaper.png}"
-      "C /home/nixos/Pictures/Wallpapers/DF_K-BG02.png 0644 nixos users - ${../../configs/assets/wallpaper.png}"
+      # Wallpapers collection
+      "C /home/nixos/Pictures/Wallpapers 0755 nixos users - ${../../configs/assets/wallpapers}"
     ];
 
     # 6. Fallback activation script for skel and persistent users
@@ -124,8 +122,7 @@ with lib;
       chmod 0600 /etc/skel/.config/noctalia/storage.key 2>/dev/null || true
       cp -f ${../../configs/kitty/kitty.conf} /etc/skel/.config/kitty/kitty.conf 2>/dev/null || true
       cp -f ${../../configs/starship/starship.toml} /etc/skel/.config/starship.toml 2>/dev/null || true
-      cp -f ${../../configs/assets/wallpaper.png} /etc/skel/Pictures/DF_K-BG02.png 2>/dev/null || true
-      cp -f ${../../configs/assets/wallpaper.png} /etc/skel/Pictures/Wallpapers/DF_K-BG02.png 2>/dev/null || true
+      cp -rf ${../../configs/assets/wallpapers}/* /etc/skel/Pictures/Wallpapers/ 2>/dev/null || true
     '';
   };
 }
