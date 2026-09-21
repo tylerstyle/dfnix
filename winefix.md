@@ -158,9 +158,10 @@ window-rule {
 ```
 The main forensic workbench occupies a full-height column, while all secondary windows (Directory Browser Options, Volume Snapshot, Search, Progress dialogs) float above it automatically.
 
-### Option 2: Wine Virtual Desktop Mode (`--desktop` / `-d`)
-For examiners who prefer an isolated, classic Windows desktop window:
+### Option 2: Windowed Mode / Wine Virtual Desktop (`--desktop` / `-d`)
+For examiners who prefer running X-Ways inside a single contained window rather than across tiled columns:
 ```bash
 xways --desktop
 ```
 This encapsulates all dialogs, context menus, and hover popups inside a single containment window, auto-scaled to the active monitor resolution.
+

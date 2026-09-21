@@ -1,48 +1,49 @@
 # dfnix 🔍💿
-> **Declarative, Bit-for-Bit Reproducible Live NixOS Distribution Engineered for Digital Forensics and Incident Response (DFIR) Field Operations.**
+> **Live NixOS distribution for Digital Forensics and Incident Response (DFIR).**
 
-`dfnix` is a specialized, air-gapped, live bootable NixOS ISO tailored for digital forensic field acquisition, damaged media triage, and incident response. It integrates **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** with an asymmetric, NIST CFTT-compliant software write-blocking architecture, a dual desktop environment featuring **Niri + Noctalia** (Wayland) alongside a lightweight **XFCE** (X11) fallback, and dedicated standalone tools: **`dfmount`** (storage manager), **`dfnet`** (network operations), and **`dfinfo`** (system triage & fastfetch reporting).
-
----
-
-## ⚡ Core Highlights
-
-- **5-Layer Defense-in-Depth Write-Blocking**:
-  - **Kernel Parameter Neutralization**: `systemd.gpt_auto=0` disables auto-mounting of root, home, and swap partitions from GPT evidence drives.
-  - **Swap Inactivation**: `systemd.targets.swap.enable = false` ensures evidence disks with swap flags are never touched as virtual memory.
-  - **Kernel Driver Ro-Enforcement**: Immediate `blockdev --setro` and `ATTR{ro}="1"` triggered via udev upon disk/partition insertion.
-  - **Udisks & Polkit Lockdown**: Suppresses auto-probing and blocks unauthenticated desktop mounts.
-  - **Zero Journal Replay (`dfmount`)**: Mounts ext4 (`ro,noload`), XFS (`ro,norecovery`), and Btrfs (`ro,rescue=nologreplay`) without altering filesystem superblocks or dirty logs.
-- **Asymmetric Evidence vs. Target Workflow**:
-  - All attached devices are locked **Read-Only** by default.
-  - Examiners can selectively **unblock destination drives** or mount them writeable under `/media/target` so `dfdisk` can write `.E01` or `.raw` images.
-- **Dual Desktop Experience**:
-  - **Primary**: **Niri** (modern scrollable-tiling Wayland compositor) with the **Noctalia** top bar and shell, customized dark theme, and high-DPI fluidity.
-  - **Top Bar & TUI Integration**: Instant keyboard-driven access to `dfdisk`, `dfmount`, `dfnet`, and `dfinfo`.
-  - **Fallback**: **XFCE** (X11) with automounting strictly disabled, providing guaranteed boot on vintage laptops, legacy BIOS, or GPUs without Wayland support.
-  - **Desktop Branding**: Pre-configured with dynamic digital forensics 4K wallpapers, automated rotation, and Noctalia wallpaper-adaptive theming.
-- **Field-Ready Live Architecture**:
-  - **`copytoram` Boot Mode**: The SquashFS image decompresses entirely into RAM during early boot. Once loaded, **the bootable USB drive can be safely ejected**, completely freeing up the USB bus for high-throughput evidence imaging.
-  - **`zstd -Xcompression-level 19`**: Delivers decompression throughput exceeding 1.5 GB/s, drastically cutting boot times.
-  - **100% Air-Gapped Offline Usability**: Zero runtime network dependencies. Manpages and documentation are pre-indexed for offline lookup (`man -k`).
+`dfnix` is an offline, bootable NixOS live system built for forensic imaging, media triage, and incident response. It integrates **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** with software write-blocking, a dual desktop environment featuring **Niri + Noctalia** (Wayland) alongside an **XFCE** (X11) fallback, and standalone helper tools: **`dfmount`** (storage manager), **`dfnet`** (network operations), and **`dfinfo`** (system triage).
 
 ---
 
-## 📐 Project Architecture
+## Core Features
+
+- **5-Layer Write Blocking**:
+  - **Kernel Parameters**: `systemd.gpt_auto=0` disables automatic mounting of partitions from GPT evidence drives.
+  - **Swap Disabled**: `systemd.targets.swap.enable = false` ensures evidence partitions with swap type UUIDs are not mounted as virtual memory.
+  - **Read-Only Block Devices**: udev rules enforce `blockdev --setro` and `ATTR{ro}="1"` upon device insertion.
+  - **Udisks & Polkit Restrictions**: Disables automount probing and blocks unauthenticated desktop mounts.
+  - **No Journal Replay (`dfmount`)**: Mounts ext4 (`ro,noload`), XFS (`ro,norecovery`), and Btrfs (`ro,rescue=nologreplay`) without modifying filesystems.
+- **Evidence vs. Target Storage**:
+  - Attached devices are set to **Read-Only** by default.
+  - Destination drives can be selectively unblocked and mounted writeable under `/media/target` for `.E01` or raw disk images.
+- **Desktop Environments**:
+  - **Primary**: **Niri** (scrollable-tiling Wayland compositor) with the **Noctalia** top bar and launcher.
+  - **Direct Shortcuts**: Keybindings to launch `dfdisk`, `dfmount`, `dfnet`, and `dfinfo`.
+  - **Fallback**: **XFCE** (X11) with automounting disabled, for hardware without Wayland support or legacy BIOS.
+  - **Theming**: Digital forensics wallpapers with automated rotation and adaptive colors.
+- **Live System Architecture**:
+  - **`copytoram` Boot Mode**: The SquashFS image is copied into RAM during boot, allowing the boot USB drive to be removed after startup to free the USB bus.
+  - **`zstd` Compression**: Compressed with `zstd -Xcompression-level 19` for fast decompression and shorter boot times.
+  - **Offline Operation**: No runtime network dependencies. Documentation and manual pages are pre-indexed for offline access (`man -k`).
+
+---
+
+## Project Architecture
 
 ```
 dfnix/
 ├── configuration.nix               # Root flakeless NixOS live ISO configuration
 ├── default.nix                     # Flakeless build entrypoint (nix-build -A iso)
-├── Makefile                        # Single-command shortcuts (make iso, make check)
+├── Makefile                        # Build shortcuts (make iso, make check, make vm)
 ├── flake.nix                       # Optional flake definition
 ├── .gitignore
 ├── README.md
+├── winefix.md                      # Technical documentation for X-Ways Wine HID patch
 ├── modules/
 │   ├── hardware/
-│   │   └── write-blocking.nix      # 5-Layer udev, blockdev, swap, and daemon lockdown
+│   │   └── write-blocking.nix      # 5-Layer udev, blockdev, swap, and daemon rules
 │   ├── forensics/
-│   │   └── default.nix             # Complete DFIR tool suites (imaging, carving, memory, pcap)
+│   │   └── default.nix             # DFIR tool suites (imaging, carving, memory, network)
 │   ├── desktop/
 │   │   ├── niri.nix                # Primary Niri + Noctalia Wayland desktop environment
 │   │   ├── xfce.nix                # Fallback XFCE4 X11 desktop environment (no automounting)
@@ -50,10 +51,10 @@ dfnix/
 │   └── iso/
 │       └── live-iso.nix            # copytoram, zstd-19, hybrid UEFI/BIOS boot, offline docs
 ├── pkgs/
-│   ├── df-mount/                   # Forensic Mounter & Target Unblocker Suite
+│   ├── df-mount/                   # Forensic Mounter & Target Unblocker
 │   │   ├── default.nix             # Nix derivation wrapping CLI & Libadwaita GUI
-│   │   ├── df-mount.sh             # Zero-journal-write CLI mount & unblock engine
-│   │   └── df-mount-gui.py         # Modern GTK4 / Libadwaita graphical manager
+│   │   ├── df-mount.sh             # CLI mount & unblock script
+│   │   └── df-mount-gui.py         # GTK4 / Libadwaita graphical manager
 │   ├── dwarf2json/
 │   │   └── default.nix             # Volatility 3 ISF table generator
 │   └── regripper/
@@ -63,10 +64,10 @@ dfnix/
     │   ├── config.kdl              # Niri configuration with Mod+D (dfdisk) & Mod+M (dfmount)
     │   └── noctalia.kdl            # Noctalia theme color definitions
     ├── noctalia/
-    │   ├── config.toml             # Noctalia shell configuration, top bar custom buttons, launcher
-    │   └── settings.toml           # Noctalia state & wallpaper presets
+    │   ├── config.toml             # Noctalia shell configuration, top bar buttons, launcher
+    │   └── settings.toml           # Noctalia state & wallpaper settings
     └── assets/
-        ├── wallpapers/             # Curated digital forensics 4K wallpapers with automated rotation
+        ├── wallpapers/             # Digital forensics wallpapers with automated rotation
         ├── dfdisk.desktop          # Application launcher entry for dfdisk
         ├── dfmount.desktop         # Application launcher entry for dfmount
         ├── dfnet.desktop           # Application launcher entry for dfnet
@@ -75,7 +76,7 @@ dfnix/
 
 ---
 
-## 🛠️ The df-nix Forensic Workflow
+## Forensic Workflow
 
 ```
 [Connect Suspect Media]
@@ -85,7 +86,7 @@ dfnix/
            ├── Sets sysfs ATTR{ro}="1"
            ├── Sets blockdev --setro /dev/sdb
            ├── Tags ENV{UDISKS_IGNORE}="1"
-           └── Result: EVIDENCE STRICTLY WRITE-BLOCKED (Driver Level)
+           └── Result: Evidence drive set to read-only
                    │
                    ▼
 [Connect Destination Drive (e.g. /dev/sdc for E01 dumps)]
@@ -94,7 +95,7 @@ dfnix/
 [Launch dfmount (Top Bar Icon or Mod+M)]
            │
            ├── Select Destination Drive (/dev/sdc1)
-           ├── Click "💾 Mount Target" (or run 'sudo dfmount target /dev/sdc1')
+           ├── Click "Mount Target" (or run 'sudo dfmount target /dev/sdc1')
            └── Destination mounted writeable at /media/target/sdc1
                    │
                    ▼
@@ -102,12 +103,12 @@ dfnix/
            │
            ├── Source: /dev/sdb (Read-only protected evidence)
            ├── Output: /media/target/sdc1/cases/2026/
-           └── Perform E01 acquisition, damaged rescue with ddrescue, or conversion
+           └── Acquire E01 image, run ddrescue, or convert images
 ```
 
 ---
 
-## 🧰 Bundled DFIR Tool Suite
+## DFIR Tool Suite
 
 | Category | Tools Included |
 | :--- | :--- |
@@ -123,35 +124,34 @@ dfnix/
 
 ---
 
-## 🍷 Portable X-Ways Forensics (Wine & Hardware Dongle Architecture)
+## Portable X-Ways Forensics (Wine & Dongle Support)
 
-`dfnix` includes an out-of-the-box launcher and compatibility layer for portable **X-Ways Forensics** installations (`xwforensics64.exe` / `xwforensics.exe`), complete with **hardware security dongle passthrough** (Feitian Rockey4ND & Wibu CodeMeter) and **raw physical block device mapping**.
+`dfnix` includes a launcher and compatibility layer for portable **X-Ways Forensics** installations (`xwforensics64.exe` / `xwforensics.exe`), with **hardware dongle support** (Feitian Rockey4ND & Wibu CodeMeter) and **raw physical block device mapping**.
 
 ### 1. Usage & Auto-Discovery
 
-You can launch X-Ways either via the desktop application launcher / Noctalia search (`X-Ways Forensics (Wine)`), or directly from the terminal:
+Launch X-Ways from the application launcher (`X-Ways Forensics (Wine)`) or from the terminal:
 
 ```bash
 # Auto-discover X-Ways on connected drives (/media/target, /media/evidence, /run/media, Desktop):
 xways
 
-# Or provide the path to your portable folder:
+# Specify the path to a portable folder:
 xways /media/target/sde1/Fallvorlage_21.8_SR-4/Programm/
 
-# Or specify the exact executable:
+# Specify the executable directly:
 xways /media/target/sde1/Fallvorlage_21.8_SR-4/Programm/xwforensics64.exe
 ```
 
-- **64-bit Priority**: Automatically defaults to `xwforensics64.exe` (optimal for memory-intensive evidence indexing and carving) with case-insensitive search, falling back to 32-bit `xwforensics.exe` or `xwinvestigator` if needed.
-- **Folder Arguments**: Accepting folder paths directly prevents path-resolution mistakes during rapid field deployments.
+- **Binary Selection**: Searches for `xwforensics64.exe` first, falling back to 32-bit `xwforensics.exe` or `xwinvestigator` if needed.
+- **Directory Support**: Accepts directory paths or direct executable paths.
 
 ### 2. Privilege Elevation & Raw Physical Drive Mapping
 
-Forensic triage and cloning in X-Ways require unrestricted direct access to physical storage devices:
-- **Auto-Elevation with Graphical Preservation**: If invoked by an unprivileged user, `xways` auto-elevates to `root` via `sudo` while transparently preserving Wayland (`WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`) and X11 (`DISPLAY`, `XAUTHORITY`, `xhost`) credentials so the GUI renders without display errors.
-- **Target Drive Write Permissions**: External drives mounted by `dfmount` under `/media/target` are owned by `root:root`. Running as root ensures X-Ways has full write access for case logs, temp folders, and image output.
-- **Raw Disk Block Mapping (`\\.\PhysicalDriveX`)**: Physical drives attached to the system (`/dev/sda`, `/dev/sdb`, `/dev/nvme0n1`, etc.) are dynamically linked into Wine's `dosdevices` as raw physical drives (`d::`, `f::`, `g::`, etc.). Within X-Ways, choose **File -> Open Drive / Physical Device** to inspect, hash, or clone raw media directly through Wine.
-- **Convenience DOS Mappings**:
+- **Privilege Elevation**: When invoked by an unprivileged user, `xways` prompts for `sudo` and preserves Wayland (`WAYLAND_DISPLAY`) and X11 display credentials so the interface renders properly.
+- **Target Drive Write Permissions**: External drives mounted by `dfmount` under `/media/target` are owned by `root:root`. Running as root ensures X-Ways can write case logs, temporary data, and image output.
+- **Raw Disk Block Mapping (`\\.\PhysicalDriveX`)**: Physical drives attached to the system (`/dev/sda`, `/dev/sdb`, `/dev/nvme0n1`, etc.) are dynamically linked into Wine's `dosdevices` as raw physical drives (`d::`, `f::`, `g::`, etc.). In X-Ways, select **File -> Open Drive / Physical Device** to inspect or image raw media directly.
+- **Drive Mappings**:
   - `t:` -> `/media/target` (Destination evidence storage)
   - `e:` -> `/media/evidence` (Mounted suspect media)
   - `r:` -> `/run/media` (Removable media)
@@ -160,162 +160,151 @@ Forensic triage and cloning in X-Ways require unrestricted direct access to phys
 
 ### 3. Hardware Dongle Support
 
-Hardware security dongles (**Feitian Technologies Rockey4ND** and **Wibu-Systems CodeMeter**) are supported out of the box. Dongle detection and communication work seamlessly thanks to an automated, low-overhead PE patch for Wine's HID subsystem (`HidD_FlushQueue`) combined with ephemeral Linux mount namespaces.
+Hardware security dongles (**Feitian Technologies Rockey4ND** and **Wibu-Systems CodeMeter**) are supported. Dongle communication is handled via a patched Wine HID library (`HidD_FlushQueue`) within an isolated mount namespace.
 
-> 📖 **Deep Technical Architecture**: For the full root cause analysis, PE export table patching mechanics, and mount namespace implementation, refer to the dedicated guide: [**`winefix.md`**](file:///home/df/git/dfnix/winefix.md).
+> For the root cause analysis, PE export table patching mechanics, and mount namespace implementation, see [**`winefix.md`**](file:///home/df/git/dfnix/winefix.md).
 
+### 4. Window Management (Tiled vs. Windowed Mode)
 
-### 4. Window Management in Niri (Floating Dialogs & Virtual Desktop Mode)
+Because Niri is a tiling compositor, Windows applications with numerous dialogs can open separate tiled columns. `dfnix` supports two modes of operation:
 
-By default in tiling window managers, Windows applications often scatter modal dialogs, progress windows, and tooltips into separate tiled columns. `dfnix` solves this with a hybrid approach:
+1. **Tiled Mode with Floating Dialogs (Default)**:
+   In `configs/niri/config.kdl`, window rules match X-Ways processes. The primary forensics window opens in a tiled column, while secondary dialogs (Volume Snapshot, Directory Browser Options, Search, Progress bars) open as floating windows over the application.
 
-1. **Native Floating Rules (Default)**:
-   Niri (`configs/niri/config.kdl`) is pre-configured with rules matching X-Ways (`xwforensics`, `xwinvestigator`, `winhex`). The main forensics window opens with full column width in the tiling layout, while all secondary dialogs (Volume Snapshot, Directory Browser Options, Search, Error/Warning boxes, Progress bars) automatically open as **floating windows** on top of the main application.
-
-2. **Wine Virtual Desktop Mode (`--desktop` / `-d`)**:
-   For examiners who prefer an isolated, 100% classic Windows desktop experience where all popups, context menus, and hover tooltips remain strictly contained inside a single window:
+2. **Windowed Mode / Virtual Desktop (`--desktop` / `-d`)**:
+   In windowed mode, X-Ways runs entirely contained within a single dedicated desktop window. All sub-windows, context menus, and tooltips stay inside that single window container, preventing them from tiling:
    ```bash
-   # Launch in Wine Virtual Desktop (auto-detects active monitor resolution):
+   # Launch in windowed mode (auto-detects screen resolution):
    xways --desktop
 
-   # Or specify custom resolution:
+   # Specify custom window resolution:
    xways --desktop=2560x1440
    # or: xways -d -r 1920x1080 /path/to/folder
    ```
-   A dedicated application entry **X-Ways Forensics (Virtual Desktop)** is also available directly in the Noctalia application launcher (`Mod+Space`).
+   Windowed mode can also be launched directly from the Noctalia application launcher (`Mod+Space`) via **X-Ways Forensics (Virtual Desktop)**.
 
 ---
 
-## 🚀 Building, Fast Prototyping & Virtualization
+## Building & Virtualization
 
-`dfnix` supports two development workflows:
-1. **Lightning-Fast Prototyping (`make vm`)**: Skips squashfs `zstd` compression and ISO generation entirely. Rebuilds and boots in seconds by mounting the host `/nix/store` directly via VirtIO-9p.
-2. **Production ISO Release (`make iso`)**: Generates the complete, bootable, air-gapped hybrid UEFI/BIOS ISO with `zstd` squashfs compression.
+`dfnix` supports two build and testing workflows:
+1. **VM Prototyping (`make vm`)**: Skips squashfs compression for rapid iteration during development.
+2. **ISO Build (`make iso`)**: Generates the bootable hybrid UEFI/BIOS ISO.
 
 ---
 
-### ⚡ 1. Fast Prototyping Workflow (`make vm`)
+### 1. VM Prototyping (`make vm`)
 
-When iterating on desktop configurations (`niri`, `noctalia`, `starship`), udev rules, or forensic packages, compressing multiple gigabytes of squashfs after every change is slow. Use the VM target instead:
+For testing desktop configurations, udev rules, or packages without waiting for squashfs compression:
 
 ```bash
-# 1. Build the instant VM closure (takes seconds)
+# 1. Build VM
 make vm
-# or flakeless: nix-build -A vm -o result-vm
-# or flake:     nix build .#vm
+# or: nix-build -A vm -o result-vm
 
-# 2. Launch the VM
+# 2. Launch VM
 make test-vm
 # or: ./scripts/run-vm.sh --vm
 ```
 
 ---
 
-### 🖥️ 2. Virtualization: Desktop Workstation vs. Headless Server
+### 2. Virtualization: Desktop Workstation vs. Headless Server
 
-The integrated runner `./scripts/run-vm.sh` automatically detects the host environment and configures optimal display and input drivers:
+The `./scripts/run-vm.sh` runner detects the host environment:
 
-#### A. Interactive Desktop Workstation (Local GUI)
-When executed within an active Wayland or X11 session on a desktop machine:
-- **Display**: Automatically launches a native GUI window using hardware KVM acceleration (`-vga virtio`).
-- **Cursor**: Seamless pointer capture and release via `-device usb-tablet`.
-- **Drives**: Automatically attaches both a simulated suspect evidence drive (`test-evidence.raw`, write-blocked) and a destination storage drive (`test-target.raw`, writable for `dfmount` and `dfdisk`).
+#### A. Desktop Workstation (Local GUI)
+When run within an active graphical session (Wayland or X11):
+- Uses hardware KVM acceleration and VirtIO graphics (`-vga virtio`).
+- Captures the pointer smoothly via `-device usb-tablet`.
+- Attaches test evidence (`test-evidence.raw`, read-only) and target storage (`test-target.raw`, writable).
 
 ```bash
-# Launch rapid prototyping VM in native GUI window:
+# Test VM in a local GUI window:
 make test-vm
 
-# Or test the built ISO image in native GUI window:
+# Test the built ISO in a local GUI window:
 make test-qemu
 ```
 
 #### B. Headless Server (Remote SSH)
-When run over SSH on a headless remote server without `$DISPLAY`:
-- **Auto-Headless**: Automatically starts **SPICE** (port `5930`), **VNC** (port `5901`), and guest **SSH forwarding** (port `2222`).
-- **Zero GUI Crashing**: Operates without requiring an X11/Wayland display server on the host.
+When run over SSH without a local display:
+- Starts **SPICE** (port `5930`), **VNC** (port `5901`), and guest **SSH forwarding** (port `2222`).
+- Runs without requiring a host display server.
 
 ```bash
-# Launch on remote server (runs in headless mode automatically):
+# Launch on remote server (runs headless automatically):
 make test-vm
 # or for the full ISO:
 make test-qemu
-# or explicitly force headless:
+# or force headless:
 make test-headless
 ```
 
-##### Connecting to the VM on a Remote Server:
-- **Option 1: SPICE (Recommended — dynamic resolution, clipboard & audio)**:
-  ```bash
-  remote-viewer spice://<server-ip>:5930
-  ```
-- **Option 2: VNC**:
-  ```bash
-  vncviewer <server-ip>:5901
-  ```
-- **Option 3: SSH Tunneling (if ports are firewalled)**:
+##### Connecting to Headless VM:
+- **SPICE**: `remote-viewer spice://<server-ip>:5930`
+- **VNC**: `vncviewer <server-ip>:5901`
+- **SSH Tunnel**:
   ```bash
   ssh -L 5901:127.0.0.1:5901 -L 5930:127.0.0.1:5930 user@<server-ip>
   # Then locally on your workstation:
   remote-viewer spice://127.0.0.1:5930
   ```
-- **Option 4: Direct SSH Console Triage (No GUI required)**:
+- **Guest SSH Console**:
   ```bash
   ssh -p 2222 nixos@<server-ip>
-  # Inside guest: passwordless sudo for dfdisk, dfmount, dfnet
   sudo dfdisk
   ```
 
-
 ---
 
-### 💿 3. Building & Flashing the Live ISO
+### 3. Building & Flashing the Live ISO
 
 #### A. Build the Bootable ISO
 ```bash
 make iso
 # or: nix-build -A iso -o result-iso
 ```
-*The resulting bootable hybrid ISO will be written to `./result-iso/iso/dfnix-forensics-x86_64-linux.iso`.*
+*The resulting bootable hybrid ISO is written to `./result-iso/iso/dfnix-forensics.iso`.*
 
 #### B. Verify Write-Blocking in QEMU
-Inside any booted live environment:
+Inside the live system:
 ```bash
-# Verify kernel/blockdev write-block flag (returns 1 for read-only)
+# Verify kernel write-block flag (returns 1 for read-only)
 blockdev --getro /dev/vda
 
-# Confirm that raw disk writes fail immediately:
+# Confirm that raw disk writes fail:
 sudo dd if=/dev/zero of=/dev/vda bs=512 count=1
 # Output: dd: failed to open '/dev/vda': Read-only file system
 ```
 
-#### C. Flash to Physical USB Drive
+#### C. Flash to USB Drive
 ```bash
-# Flash with built-in safety checks against overwriting system disks:
 make flash DEV=/dev/sdX
 # or manually:
 sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync oflag=direct
 ```
-*(Replace `/dev/sdX` with your target USB thumbdrive)*
+*(Replace `/dev/sdX` with your target USB drive)*
 
 ---
 
-## ⌨️ Desktop Keybindings (Niri)
+## Desktop Keybindings (Niri)
 
 | Keybinding | Action |
 | :--- | :--- |
-| `Mod+D` | Launch **dfdisk** Forensic Imager in Kitty (with sudo) |
-| `Mod+M` | Launch **dfmount** Forensic Storage Manager GUI (with sudo) |
-| `Mod+N` | Launch **dfnet** Forensic Network Operations in Kitty (with sudo) |
-| `Mod+I` | Launch **dfinfo** Forensic System Triage & Fastfetch in Kitty (with sudo) |
+| `Mod+D` | Launch **dfdisk** in Kitty (sudo) |
+| `Mod+M` | Launch **dfmount** GUI (sudo) |
+| `Mod+N` | Launch **dfnet** in Kitty (sudo) |
+| `Mod+I` | Launch **dfinfo** in Kitty (sudo) |
 | `Mod+Space` | Toggle Noctalia Application Launcher |
 | `Mod+S` | Toggle Noctalia Control Center |
 | `Mod+Return` | Launch Kitty Terminal |
 | `Mod+E` | Launch Dolphin File Manager |
 | `Mod+B` | Launch Firefox |
-| `Mod+Shift+E` | Session Menu / Logout (switch to XFCE fallback) |
+| `Mod+Shift+E` | Session Menu / Logout |
 
 ---
 
-## 📜 License & Compliance
+## License
 
-Distributed under the **MIT License**. Engineered according to NIST Computer Forensic Tool Testing (CFTT) write-blocking principles.
+Distributed under the **MIT License**. Follows NIST Computer Forensic Tool Testing (CFTT) write-blocking principles.
