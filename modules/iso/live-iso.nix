@@ -34,6 +34,10 @@
     "usb_storage"
     "uas"
     "sd_mod"
+    "sr_mod"
+    "cdrom"
+    "isofs"
+    "sg"
     "rtsx_pci_sdmmc"
     "rtsx_usb_sdmmc"
   ];
@@ -41,9 +45,10 @@
   boot.kernelParams = [
     # Boot entirely into RAM (eliminates CD-ROM loopback LBA readahead errors on Zalman / virtual ODDs)
     "copytoram"
-    # USB initialization stability for legacy USB 2.0 drives on modern xHCI
+    # USB initialization stability for external drives & virtual ODDs (Zalman/IODD) on modern xHCI
     "usbcore.autosuspend=-1"
-    "usbcore.initial_descriptor_timeout=2000"
+    "usbcore.initial_descriptor_timeout=15000"
+    "rootdelay=5"
     "panic=10"
   ];
 
@@ -62,7 +67,6 @@
       config.boot.initrd.systemd.package.util-linux
     ];
     script = lib.mkForce ''
-      set -eu
       echo ">>> dfnix: Evaluating system memory for live forensic store..."
 
       # Skip if /sysroot/iso is not mounted (e.g. in a QEMU VM or persistent installation)
@@ -72,8 +76,8 @@
       fi
 
       # Detect total RAM from /proc/meminfo
-      read -r _ mem_total_kb _ < /proc/meminfo
-      mem_total_mb=$(( mem_total_kb / 1024 ))
+      read -r _ mem_total_kb _ < /proc/meminfo || true
+      mem_total_mb=$(( ''${mem_total_kb:-0} / 1024 ))
       echo ">>> dfnix: Total System RAM: ''${mem_total_mb} MB"
 
       # Measure live ISO size on /sysroot/iso (following mount symlinks if any)
@@ -100,17 +104,38 @@
       echo ">>> dfnix: Allocating ''${target_mb} MB RAM tmpfs for live forensic store..."
 
       mkdir -p /tmp-iso
-      mount --bind --make-private /sysroot/iso /tmp-iso
-      umount /sysroot/iso
+      if ! mount --bind --make-private /sysroot/iso /tmp-iso; then
+        echo ">>> dfnix: WARNING: Failed to bind-mount /sysroot/iso. Booting directly from storage media."
+        exit 0
+      fi
 
-      mount -t tmpfs -o "size=''${target_mb}M" tmpfs /sysroot/iso
+      if ! umount /sysroot/iso && ! umount -l /sysroot/iso; then
+        echo ">>> dfnix: WARNING: Failed to unmount /sysroot/iso. Booting directly from storage media."
+        umount /tmp-iso 2>/dev/null || true
+        rm -rf /tmp-iso 2>/dev/null || true
+        exit 0
+      fi
+
+      if ! mount -t tmpfs -o "size=''${target_mb}M" tmpfs /sysroot/iso; then
+        echo ">>> dfnix: WARNING: Failed to mount tmpfs on /sysroot/iso. Restoring original mount."
+        mount --bind /tmp-iso /sysroot/iso 2>/dev/null || true
+        umount /tmp-iso 2>/dev/null || true
+        rm -rf /tmp-iso 2>/dev/null || true
+        exit 0
+      fi
 
       echo ">>> dfnix: Copying forensic live OS into RAM (please wait)..."
-      cp -r /tmp-iso/* /sysroot/iso/
-
-      umount /tmp-iso
-      rm -rf /tmp-iso
-      echo ">>> dfnix: Live OS successfully loaded into RAM. Boot media may now be safely removed."
+      if cp -r /tmp-iso/* /sysroot/iso/ 2>/dev/null || cp -a /tmp-iso/. /sysroot/iso/ 2>/dev/null; then
+        echo ">>> dfnix: Live OS successfully loaded into RAM. Boot media may now be safely removed."
+        umount /tmp-iso 2>/dev/null || umount -l /tmp-iso 2>/dev/null || true
+        rm -rf /tmp-iso 2>/dev/null || true
+      else
+        echo ">>> dfnix: ERROR: Copy to RAM failed! Falling back to booting directly from storage media."
+        umount /sysroot/iso 2>/dev/null || umount -l /sysroot/iso 2>/dev/null || true
+        mount --bind /tmp-iso /sysroot/iso 2>/dev/null || true
+        umount /tmp-iso 2>/dev/null || true
+        rm -rf /tmp-iso 2>/dev/null || true
+      fi
     '';
   };
 
