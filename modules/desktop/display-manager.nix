@@ -88,9 +88,8 @@ EOF
     if [ ! -f "$HOME_DIR/.config/starship.toml" ] && [ -f /etc/starship.toml ]; then
       cp -f /etc/starship.toml "$HOME_DIR/.config/starship.toml"
     fi
-    if [ ! -f "$HOME_DIR/Pictures/DF_K-BG02.png" ] && [ -f /etc/xdg/dfnix/wallpaper.png ]; then
-      cp -f /etc/xdg/dfnix/wallpaper.png "$HOME_DIR/Pictures/DF_K-BG02.png"
-      cp -f /etc/xdg/dfnix/wallpaper.png "$HOME_DIR/Pictures/Wallpapers/DF_K-BG02.png"
+    if [ -d /etc/xdg/dfnix/wallpapers ]; then
+      cp -rn /etc/xdg/dfnix/wallpapers/* "$HOME_DIR/Pictures/Wallpapers/" 2>/dev/null || true
     fi
 
     export NIRI_CONFIG="$HOME_DIR/.config/niri/config.kdl"

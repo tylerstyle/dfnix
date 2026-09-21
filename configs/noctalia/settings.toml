@@ -10,11 +10,23 @@ setup_wizard_enabled = false
 key_source = "file"
 key_file = "/home/nixos/.config/noctalia/storage.key"
 
+[theme]
+source = "wallpaper"
+
+    [theme.templates]
+    builtin_ids = [ "btop", "gtk3", "gtk4", "kitty", "niri", "starship" ]
+
 [wallpaper]
-transition_on_startup = false
+transition_on_startup = true
+
+    [wallpaper.automation]
+    enabled = true
+    interval = 300
+    order = "random"
+    recursive = true
 
     [wallpaper.default]
-    path = "/home/nixos/Pictures/DF_K-BG02.png"
+    path = "/home/nixos/Pictures/Wallpapers/digitale-forensik.jpg"
 
     [wallpaper.last]
-    path = "/home/nixos/Pictures/DF_K-BG02.png"
+    path = "/home/nixos/Pictures/Wallpapers/digitale-forensik.jpg"

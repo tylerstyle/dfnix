@@ -31,7 +31,7 @@ with lib;
       after = [ "graphical-session.target" ];
       script = ''
         if [ "$XDG_CURRENT_DESKTOP" = "XFCE" ] && command -v xfconf-query >/dev/null 2>&1; then
-          xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s "${../../configs/assets/wallpaper.png}" || true
+          xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s "${../../configs/assets/wallpapers/digitale-forensik.jpg}" || true
         fi
       '';
     };
