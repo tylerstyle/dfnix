@@ -89,7 +89,7 @@ in
       comment = "System hardware triage, fastfetch overview, and concise forensic documentation";
       exec = "kitty --title \"dfinfo - Forensic System Triage\" sudo dfinfo";
       icon = "utilities-system-monitor";
-      categories = [ "System" "Forensics" "Utility" ];
+      categories = [ "System" "Utility" ];
       keywords = [ "forensics" "triage" "fastfetch" "system" "hardware" "evidence" ];
     })
   ];

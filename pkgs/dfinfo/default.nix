@@ -40,7 +40,7 @@ Exec=kitty --title "dfinfo - Forensic System Triage" sudo dfinfo
 Icon=utilities-system-monitor
 Terminal=false
 Type=Application
-Categories=System;Forensics;Utility;
+Categories=System;Utility;
 Keywords=forensics;triage;fastfetch;system;hardware;evidence;
 StartupNotify=true
 EOF
