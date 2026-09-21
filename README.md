@@ -55,6 +55,8 @@ dfnix/
 │   │   ├── default.nix             # Nix derivation wrapping CLI & Libadwaita GUI
 │   │   ├── df-mount.sh             # CLI mount & unblock script
 │   │   └── df-mount-gui.py         # GTK4 / Libadwaita graphical manager
+│   ├── dfinfo/                     # Forensic System Triage & Fastfetch Suite
+│   ├── dfnix-guide/                # Interactive Quick Start Guide & Cheat Sheet
 │   ├── dwarf2json/
 │   │   └── default.nix             # Volatility 3 ISF table generator
 │   └── regripper/
@@ -71,7 +73,8 @@ dfnix/
         ├── dfdisk.desktop          # Application launcher entry for dfdisk
         ├── dfmount.desktop         # Application launcher entry for dfmount
         ├── dfnet.desktop           # Application launcher entry for dfnet
-        └── dfinfo.desktop          # Application launcher entry for dfinfo
+        ├── dfinfo.desktop          # Application launcher entry for dfinfo
+        └── dfnix-guide.desktop     # Application launcher entry for dfnix-guide
 ```
 
 ---
@@ -292,6 +295,7 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 
 | Keybinding | Action |
 | :--- | :--- |
+| `F1` / `Mod+F1` | Launch **dfnix-guide** Quick Start & Keybindings (Floating Info) |
 | `Mod+D` | Launch **dfdisk** in Kitty (sudo) |
 | `Mod+M` | Launch **dfmount** GUI (sudo) |
 | `Mod+N` | Launch **dfnet** in Kitty (sudo) |

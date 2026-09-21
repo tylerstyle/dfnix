@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=dfnix Quick Start Guide
+GenericName=Forensic Quick Start & Navigation Guide
+Comment=Guide for storage mounting, hardware triage, disk imaging, and Niri navigation
+Exec=dfnix-guide
+Icon=help-browser
+Terminal=false
+Type=Application
+Categories=System;Documentation;Utility;
+Keywords=guide;help;documentation;quickstart;niri;dfdisk;dfmount;dfinfo;forensics;
+StartupNotify=true

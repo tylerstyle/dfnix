@@ -19,6 +19,8 @@ let
              then final.callPackage ../dfinfo/package.nix { }
              else final.callPackage ./pkgs/dfinfo { };
 
+    dfnix-guide = final.callPackage ./pkgs/dfnix-guide { };
+
     dwarf2json = final.callPackage ./pkgs/dwarf2json { };
     regripper = final.callPackage ./pkgs/regripper { };
   };
@@ -48,10 +50,21 @@ in
     dfmount
     dfnet
     dfinfo
+    dfnix-guide
     firefox
     chromium
     
     # Desktop entries for TUI tools (Kitty launches directly without legacy -e flag)
+    (makeDesktopItem {
+      name = "dfnix-guide";
+      desktopName = "dfnix Quick Start Guide";
+      genericName = "Forensic Quick Start & Navigation Guide";
+      comment = "Guide for storage mounting, hardware triage, disk imaging, and Niri navigation";
+      exec = "dfnix-guide";
+      icon = "help-browser";
+      categories = [ "System" "Documentation" "Utility" ];
+      keywords = [ "guide" "help" "documentation" "quickstart" "niri" "dfdisk" "dfmount" "dfinfo" "forensics" ];
+    })
     (makeDesktopItem {
       name = "dfdisk";
       desktopName = "dfdisk Forensic Imager";

@@ -162,6 +162,15 @@ window-rule {
     open-focused false
 }
 
+// Quick Start Guide floating info window
+window-rule {
+    match app-id=r#"^dfnix-guide$"#
+    match title=r#".*Quick Start Guide.*"#
+    open-floating true
+    default-column-width { proportion 0.65; }
+    default-window-height { proportion 0.85; }
+}
+
 window-rule {
     match app-id=r#"^org\.wezfurlong\.wezterm$"#
     match app-id="Alacritty"
@@ -230,6 +239,9 @@ binds {
     Mod+M           { spawn "kitty" "--title" "dfmount - Forensic Storage Manager" "sudo" "dfmount"; }
     Mod+N           { spawn "kitty" "--title" "dfnet - Forensic Network Operations" "sudo" "dfnet"; }
     Mod+I           { spawn "kitty" "--title" "dfinfo - Forensic System Triage" "sudo" "dfinfo"; }
+    F1              { spawn "dfnix-guide"; }
+    Mod+F1          { spawn "dfnix-guide"; }
+    Mod+Question    { spawn "dfnix-guide"; }
 
     // --- Window Actions ---
     Mod+Q           { close-window; }
