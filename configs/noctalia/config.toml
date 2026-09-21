@@ -15,7 +15,7 @@ corner_radius_scale = 1.0
     compact = false
     show_icons = true
     sort_by_usage = true
-    pinned = [ "dfdisk.desktop", "dfmount.desktop", "dfnet.desktop", "dfinfo.desktop", "kitty.desktop", "dolphin.desktop" ]
+    pinned = [ "dfnix-guide.desktop", "dfdisk.desktop", "dfmount.desktop", "dfnet.desktop", "dfinfo.desktop", "kitty.desktop", "dolphin.desktop" ]
 
     [shell.panel]
     transparency_mode = "soft"
@@ -33,7 +33,7 @@ order = [ "default" ]
     background_opacity = 0.65
     contact_shadow = true
     start = [ "launcher", "workspaces" ]
-    center = [ "dfdisk_btn", "dfmount_btn", "dfnet_btn", "dfinfo_btn" ]
+    center = [ "dfdisk_btn", "dfmount_btn", "dfnet_btn", "dfinfo_btn", "guide_btn" ]
     end = [ "clock", "tray", "volume", "brightness", "battery", "control-center" ]
 
 [widget.dfdisk_btn]
@@ -65,12 +65,21 @@ tooltip = "Launch dfnet Forensic Network Operations (Mod+N)"
 
 [widget.dfinfo_btn]
 type = "custom_button"
-glyph = "info-circle"
+glyph = "device-analytics"
 label = "dfinfo"
 tooltip = "Launch dfinfo Forensic System Triage & Fastfetch (Mod+I)"
 
     [widget.dfinfo_btn.actions]
     left = "exec kitty --title 'dfinfo - Forensic System Triage' sudo dfinfo"
+
+[widget.guide_btn]
+type = "custom_button"
+glyph = "help-circle"
+label = "Info"
+tooltip = "Quick Start Guide & Niri Keybindings (F1)"
+
+    [widget.guide_btn.actions]
+    left = "exec dfnix-guide"
 
 [wallpaper]
 directory = "/home/nixos/Pictures/Wallpapers"

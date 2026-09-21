@@ -18,6 +18,7 @@
         "ignoreMouseInput": false,
         "overviewLayer": false,
         "pinnedApps": [
+            "dfnix-guide.desktop",
             "dfdisk.desktop",
             "dfmount.desktop",
             "dfnet.desktop",
@@ -254,6 +255,7 @@
         ],
         "onlySameOutput": true,
         "pinnedApps": [
+            "dfnix-guide.desktop",
             "dfdisk.desktop",
             "dfmount.desktop",
             "dfnet.desktop",

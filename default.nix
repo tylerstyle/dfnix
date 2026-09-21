@@ -32,6 +32,8 @@ in
            then pkgs.callPackage ../dfinfo/package.nix { }
            else pkgs.callPackage ./pkgs/dfinfo { };
 
+  dfnix-guide = pkgs.callPackage ./pkgs/dfnix-guide { };
+
   dwarf2json = pkgs.callPackage ./pkgs/dwarf2json { };
   regripper = pkgs.callPackage ./pkgs/regripper { };
 

@@ -30,6 +30,9 @@
         # Forensic System Triage & Fastfetch Reporter
         dfinfo = final.callPackage ./pkgs/dfinfo { };
 
+        # Forensic Quick Start & Navigation Guide
+        dfnix-guide = final.callPackage ./pkgs/dfnix-guide { };
+
         # Volatility 3 ISF generator
         dwarf2json = final.callPackage ./pkgs/dwarf2json { };
 
@@ -48,7 +51,7 @@
           };
         in
         {
-          inherit (pkgs) dfdisk dfmount dfnet dfinfo dwarf2json regripper;
+          inherit (pkgs) dfdisk dfmount dfnet dfinfo dfnix-guide dwarf2json regripper;
           
           # Shortcut: nix build .#iso
           iso = self.nixosConfigurations.df-forensics-iso.config.system.build.isoImage;
@@ -126,6 +129,16 @@
                   icon = "utilities-system-monitor";
                   categories = [ "System" "Utility" ];
                   keywords = [ "forensics" "triage" "fastfetch" "system" "hardware" "evidence" ];
+                })
+                (pkgs.makeDesktopItem {
+                  name = "dfnix-guide";
+                  desktopName = "dfnix Quick Start Guide";
+                  genericName = "Forensic Quick Start & Navigation Guide";
+                  comment = "Guide for storage mounting, hardware triage, disk imaging, and Niri navigation";
+                  exec = "dfnix-guide";
+                  icon = "help-browser";
+                  categories = [ "System" "Documentation" "Utility" ];
+                  keywords = [ "guide" "help" "documentation" "quickstart" "niri" "dfdisk" "dfmount" "dfinfo" "forensics" ];
                 })
               ];
             })
