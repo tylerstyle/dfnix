@@ -43,6 +43,8 @@ in
     dfdisk
     dfmount
     dfnet
+    firefox
+    chromium
     
     # Desktop entries for TUI tools (Kitty launches directly without legacy -e flag)
     (makeDesktopItem {

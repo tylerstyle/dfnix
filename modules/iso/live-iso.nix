@@ -17,7 +17,7 @@
     makeUsbBootable = true;
 
     # Ultra-fast zstd decompression (>1.5GB/s) to accelerate boot
-    squashfsCompression = "zstd";
+    squashfsCompression = "zstd -Xcompression-level 19";
   };
 
   # ----------------------------------------------------------------------------

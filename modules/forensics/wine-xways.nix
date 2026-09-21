@@ -42,35 +42,67 @@ let
     EXE_NAME=$(basename "$TARGET_EXE")
     echo "[*] Found X-Ways executable: $TARGET_EXE"
 
-    # 2. Check Feitian License Dongle
-    echo "[*] Checking for connected license dongle..."
+    # 2. Check Feitian / CodeMeter License Dongle
+    echo "[*] Checking for connected forensic license dongles..."
     if compgen -G "/dev/hidraw*" >/dev/null 2>&1; then
       if grep -q "096e" /sys/class/hidraw/*/device/uevent 2>/dev/null; then
         echo "[✓] Feitian HID security dongle detected (096e)."
+      elif grep -q "064f" /sys/class/hidraw/*/device/uevent 2>/dev/null; then
+        echo "[✓] CodeMeter security dongle detected (064f)."
       else
-        echo "[!] Note: Feitian dongle not detected. Soft license or alternate dongle may be used."
+        echo "[*] Note: Hardware dongle not detected on HID raw interface."
       fi
     else
-      echo "[!] Note: No HID raw devices detected."
+      echo "[*] Note: No HID raw devices detected."
     fi
 
-    # 3. Setup Wine DOS Devices for Physical Drives
+    # 3. Setup Wine Prefix and DOS Devices
     WINE_DIR="$HOME/.wine"
     DOS_DIR="$WINE_DIR/dosdevices"
+
+    WINE_BIN="${pkgs.wineWow64Packages.stable}/bin/wine"
+    if [ ! -x "$WINE_BIN" ] && [ -x "${pkgs.wineWow64Packages.stable}/bin/wine64" ]; then
+      WINE_BIN="${pkgs.wineWow64Packages.stable}/bin/wine64"
+    fi
+    WINESERVER_BIN="${pkgs.wineWow64Packages.stable}/bin/wineserver"
+
+    # Initialize Wine prefix cleanly if drive_c or system32 does not exist
+    if [[ ! -d "$WINE_DIR/drive_c/windows/system32" ]]; then
+      echo "[*] Initializing Wine prefix (first run, please wait)..."
+      rm -rf "$DOS_DIR" 2>/dev/null || true
+      WINEDLLOVERRIDES="mscoree,mshtml=" WINEDEBUG="-all" "$WINE_BIN" wineboot -u
+      if [[ -x "$WINESERVER_BIN" ]]; then
+        "$WINESERVER_BIN" -w 2>/dev/null || true
+      fi
+    fi
+
     mkdir -p "$DOS_DIR"
 
+    # Ensure C: and Z: DOS drives are always linked properly
+    ln -sfn ../drive_c "$DOS_DIR/c:"
+    ln -sfn / "$DOS_DIR/z:"
+
+    # Map /media and /run/media to dedicated drive letters for convenience
+    if [[ -d /media ]]; then
+      ln -sfn /media "$DOS_DIR/m:"
+    fi
+    if [[ -d /run/media ]]; then
+      ln -sfn /run/media "$DOS_DIR/r:"
+    fi
+
+    # Map physical block devices for raw physical drive inspection
     echo "[*] Mapping physical drives into Wine dosdevices for raw forensics inspection..."
-    letters=(c d e f g h i j k l m n o p)
+    letters=(d e f g h i j k l n o p q s t u v w x y)
     idx=0
 
-    for dev in $(lsblk -dpno NAME | grep -E "sd[a-z]$|nvme[0-9]+n[0-9]+$" | sort); do
+    for dev in $(lsblk -dpno NAME 2>/dev/null | grep -E "sd[a-z]$|nvme[0-9]+n[0-9]+$|mmcblk[0-9]+$" | sort); do
       if [[ $idx -lt ''${#letters[@]} ]]; then
         letter="''${letters[$idx]}"
         # Wine raw device mapping syntax: letter:: -> /dev/sdX
         target_link="$DOS_DIR/''${letter}::"
         rm -f "$target_link"
         ln -s "$dev" "$target_link"
-        echo "    Mapped $dev -> ''${letter}::"
+        echo "    Mapped raw drive $dev -> ''${letter}::"
         idx=$((idx + 1))
       fi
     done
@@ -79,10 +111,6 @@ let
     echo "[*] Launching $EXE_NAME under Wine..."
     cd "$EXE_DIR"
     export WINEDEBUG="-all"
-    WINE_BIN="${pkgs.wineWow64Packages.stable}/bin/wine"
-    if [ ! -x "$WINE_BIN" ] && [ -x "${pkgs.wineWow64Packages.stable}/bin/wine64" ]; then
-      WINE_BIN="${pkgs.wineWow64Packages.stable}/bin/wine64"
-    fi
     exec "$WINE_BIN" "$EXE_NAME" "$@"
   '';
 in
