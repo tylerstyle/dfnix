@@ -50,11 +50,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790076432,
-        "narHash": "sha256-iB1Po2K/FO+zIsp/4bRJENIqO3EoGQhyF/xyBxmSS7Y=",
+        "lastModified": 1790077307,
+        "narHash": "sha256-BZWyrlbkrCf6piUrT3o/Sxa3KaGHXUFEwhR2p6R1yR8=",
         "ref": "refs/heads/main",
-        "rev": "7cbc13b3717c962c8ec2d34287c4f07e88c5519d",
-        "revCount": 6,
+        "rev": "57feb8d4f0d23d96d2ab1dcfad8e318a60798abb",
+        "revCount": 7,
         "type": "git",
         "url": "ssh://git@github.com/tylerstyle/dfnet.git"
       },
