@@ -7,10 +7,6 @@
 set -euo pipefail
 
 # Handle non-interactive raw text dump or help
-if [[ "${1:-}" == "--raw" ]]; then
-    # Will be handled after render_guide definition
-    RAW_MODE=1
-fi
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     echo "dfnix-guide: Interactive Quick Start Guide & Keybinding Cheat Sheet"
@@ -49,9 +45,7 @@ GREEN=$(printf '\033[0;32m')
 B_GREEN=$(printf '\033[1;32m')
 YELLOW=$(printf '\033[0;33m')
 B_YELLOW=$(printf '\033[1;33m')
-RED=$(printf '\033[0;31m')
 B_RED=$(printf '\033[1;31m')
-MAGENTA=$(printf '\033[0;35m')
 B_MAGENTA=$(printf '\033[1;35m')
 WHITE=$(printf '\033[1;37m')
 
@@ -99,11 +93,21 @@ ${B_BLUE}▶ Mounting an Evidence Drive (Strict Read-Only Examination):${NC}
      - XFS:   ${DIM}ro,norecovery (no log recovery)${NC}
      - Btrfs: ${DIM}ro,rescue=nologreplay (read-only rescue)${NC}
 
+${B_YELLOW}▶ Unblocking Mechanics: Whole Disk vs. Partition:${NC}
+  Under Linux, a partition inherits read-only constraints from its parent disk.
+  ${BOLD}dfmount${NC} automates this seamlessly with bi-directional unblocking:
+  • ${BOLD}Mounting a partition (${CYAN}/dev/sdc1${NC}):${NC} Unblocks ${CYAN}sdc1${NC} ${BOLD}AND${NC} its parent disk ${CYAN}sdc${NC}.
+  • ${BOLD}Unblocking a disk (${CYAN}/dev/sdc${NC}):${NC} Unblocks ${CYAN}sdc${NC} ${BOLD}AND${NC} all child partitions.
+  • ${BOLD}Raw Disk-to-Disk Clone:${NC} Unblock the parent disk (${CYAN}sudo dfmount unblock /dev/sdc${NC})
+    to allow ${BOLD}dfdisk${NC} direct sector-level write access without a filesystem.
+  • ${BOLD}Encrypted LUKS Targets:${NC} Unblock container partition, unlock via ${CYAN}sudo cryptsetup open${NC},
+    and mount the resulting ${CYAN}/dev/mapper/<name>${NC} into ${GREEN}/media/target${NC}.
+
 ${DIM}CLI Shortcuts:
-  sudo dfmount target /dev/sdc1      # Mount target drive writeable
-  sudo dfmount evidence /dev/sdb1    # Mount evidence drive write-blocked
-  sudo dfmount unblock /dev/sdc      # Unblock physical drive without mounting
-  sudo dfmount unmount /dev/sdc1     # Safely unmount filesystem${NC}
+  sudo dfmount target /dev/sdc1      # Mount target partition writeable (auto-unblocks parent)
+  sudo dfmount evidence /dev/sdb1    # Mount evidence partition write-blocked (zero journal replay)
+  sudo dfmount unblock /dev/sdc      # Unblock physical drive + all partitions for raw imaging
+  sudo dfmount unmount /dev/sdc1     # Safely flush buffers and unmount filesystem${NC}
 
 ════════════════════════════════════════════════════════════════════════════════
 ${B_YELLOW}2. HOW TO GET HARDWARE INFO & TRIAGE (dfinfo)${NC}

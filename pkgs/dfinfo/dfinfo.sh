@@ -329,6 +329,11 @@ main() {
                 echo "  dfinfo -o <file>      Save forensic triage report directly to <file>"
                 echo "  dfinfo -p, --print    Print clean plain-text forensic report to stdout"
                 echo "  dfinfo -h, --help     Display this help documentation"
+                echo ""
+                echo "Target Storage Note:"
+                echo "  Reports automatically detect and save to writeable unblocked target drives"
+                echo "  mounted under /media/target (via 'sudo dfmount target <partition>')."
+                echo "  If no target drive is mounted, reports save to ~/Desktop."
                 exit 0
                 ;;
             *)
