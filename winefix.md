@@ -165,3 +165,11 @@ xways --desktop
 ```
 This encapsulates all dialogs, context menus, and hover popups inside a single containment window, auto-scaled to the active monitor resolution.
 
+---
+
+## 7. Legal Notice & Third-Party Trademarks
+
+- **Interoperability & Anti-Circumvention**: The runtime PE export table patch (`pePatchScript`) dynamically stubs the Wine operating system's missing implementation of `HidD_FlushQueue` within Wine's open-source `hid.dll`. It operates strictly within an isolated in-memory Linux mount namespace (`unshare -m`) without altering files on disk. The patch does **not** modify X-Ways Forensics binaries, does not bypass authentication, and does not simulate or emulate security dongles. Hardware cryptographic challenge-response authentication is executed entirely by the genuine physical USB dongle. This implementation constitutes a technical interoperability compatibility measure under US DMCA 17 U.S.C. § 1201(f) and EU Software Directive 2009/24/EC Art. 6.
+- **Trademarks**: *X-Ways Forensics* is a registered trademark of X-Ways Software Technology AG. *CodeMeter* is a registered trademark of WIBU-SYSTEMS AG. *Feitian* and *Rockey4ND* are trademarks of FEITIAN Technologies Co., Ltd. Mention of these products is solely for nominative description of interoperability and compatibility. `dfnix` is an independent open-source project and is not affiliated with or endorsed by these entities.
+
+

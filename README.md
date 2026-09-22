@@ -31,7 +31,7 @@
 ## 📦 Multi-Repository Architecture
 
 > [!IMPORTANT]
-> `dfnix` is the **distribution and system integration repository**. The core forensic tools packaged into `dfnix` are maintained as **separate, independent Git repositories**:
+> `dfnix` is the **distribution and system integration repository**. The core forensic tools packaged into `dfnix` are maintained as **separate, independent Git repositories** (each dual-licensed under **MIT** and **Apache-2.0**):
 > - **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** (`~/git/dfdisk`): Modern forensic disk imaging, damaged media rescue (.E01 / raw), and hash verification (Rust).
 > - **[`dfmount`](https://github.com/tylerstyle/dfmount)** (`~/git/dfmount`): Forensic storage mounter (zero journal replay) & target unblocker (Rust TUI + Python/Bash).
 > - **[`dfnet`](https://github.com/tylerstyle/dfnet)** (`~/git/dfnet`): Modern network triage, MAC spoofing, Wi-Fi hotspot AP, share ingest, and raw disk receiver (Rust TUI + Bash).
@@ -48,7 +48,8 @@ dfnix/
 ├── configuration.nix               # Root flakeless NixOS live ISO configuration
 ├── default.nix                     # Flakeless build entrypoint (nix-build -A iso)
 ├── Makefile                        # Build shortcuts (make iso, make check, make vm)
-├── flake.nix                       # Optional flake definition
+├── flake.nix                       # Flake definition with upstream tool inputs
+├── LICENSE                         # Project MIT License
 ├── .gitignore
 ├── README.md
 ├── winefix.md                      # Technical documentation for X-Ways Wine HID patch
@@ -64,10 +65,9 @@ dfnix/
 │   └── iso/
 │       └── live-iso.nix            # copytoram, zstd-19, hybrid UEFI/BIOS boot, offline docs
 ├── pkgs/
-│   ├── df-mount/                   # Forensic Mounter & Target Unblocker
-│   │   ├── default.nix             # Nix derivation wrapping CLI & Libadwaita GUI
-│   │   ├── df-mount.sh             # CLI mount & unblock script
-│   │   └── df-mount-gui.py         # GTK4 / Libadwaita graphical manager
+│   ├── dfdisk/                     # Derivation stub (delegates to upstream or local repo)
+│   ├── dfmount/                    # Derivation stub (delegates to upstream or local repo)
+│   ├── dfnet/                      # Derivation stub (delegates to upstream or local repo)
 │   ├── dfinfo/                     # Forensic System Triage & Fastfetch Suite
 │   ├── dfnix-guide/                # Interactive Quick Start Guide & Cheat Sheet
 │   ├── dwarf2json/
@@ -324,4 +324,29 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 
 ## 📜 License
 
-Distributed under the **MIT License**. Follows NIST Computer Forensic Tool Testing (CFTT) write-blocking principles.
+`dfnix` (the NixOS system configurations, modules, and integration scripts) is open source licensed under the **[MIT License](LICENSE)**.
+
+### Component Licenses
+- **Forensic Tool Suite** ([`dfdisk`](https://github.com/tylerstyle/dfdisk), [`dfmount`](https://github.com/tylerstyle/dfmount), [`dfnet`](https://github.com/tylerstyle/dfnet)): Maintained as standalone repositories and dual-licensed under **MIT** and **Apache-2.0**.
+- **Third-Party DFIR Packages**: Upstream packages integrated into the live distribution (such as The Sleuth Kit, Volatility 3, dwarf2json, RegRipper, Wine, Wireshark, etc.) are distributed under their respective open-source licenses (GPL, LGPL, Apache, BSD).
+
+---
+
+## ⚖️ Legal, Forensic & Trademark Disclaimers
+
+### 1. Forensic Tool Validation & Chain of Custody
+`dfnix` enforces multi-layer software write-blocking designed in alignment with NIST Computer Forensic Tool Testing (CFTT) standards. However, because digital forensics and electronic discovery are subject to rigorous legal and chain-of-custody standards:
+- **Examiner Responsibility**: Forensic practitioners, law enforcement officers, and incident responders remain solely responsible for validating their hardware, firmware, write-blocking mechanisms, and software toolchains in accordance with applicable standards (e.g., **ISO/IEC 17025**, **ISO/IEC 27037**) and jurisdiction-specific rules of evidence before deploying `dfnix` on live casework or evidence media.
+- **Limitation of Liability**: THIS SOFTWARE AND OPERATING ENVIRONMENT ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, EVIDENCE INTEGRITY, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, LOSS OF EVIDENCE, OR OTHER LIABILITY ARISING FROM THE USE OF THIS SOFTWARE.
+
+### 2. Trademarks & Nominative Fair Use
+All trademarks, product names, logos, and brands mentioned in this repository are the property of their respective owners:
+- **X-Ways Forensics®** and **WinHex®** are registered trademarks of X-Ways Software Technology AG.
+- **CodeMeter®** is a registered trademark of WIBU-SYSTEMS AG.
+- **Feitian®** and **Rockey4ND®** are trademarks of FEITIAN Technologies Co., Ltd.
+- **NixOS™** is a trademark of the NixOS Foundation.
+- **Linux®** is a registered trademark of Linus Torvalds. The Tux penguin was created by Larry Ewing.
+- **Ratatui** is an open-source project licensed under MIT / Apache-2.0.
+
+Their use within `dfnix` is strictly for **nominative identification, compatibility description, and hardware/software interoperability**. `dfnix` is an independent open-source project and is not affiliated with, sponsored by, authorized by, or endorsed by any of the trademark owners listed above. `dfnix` does not bundle or distribute any proprietary software, license keys, or commercial binaries.
+

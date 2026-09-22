@@ -79,6 +79,7 @@ EOF
     if [ ! -f "$HOME_DIR/.local/state/noctalia/.setup-complete" ]; then
       touch "$HOME_DIR/.local/state/noctalia/.setup-complete"
     fi
+    # Static dummy seed key for live ISO Noctalia UI settings (suppresses keyring popups on read-only media)
     if [ ! -f "$HOME_DIR/.config/noctalia/storage.key" ]; then
       echo "4a6f72656e7369635365637265744b6579313233343536373839616263646566" > "$HOME_DIR/.config/noctalia/storage.key"
       chmod 0600 "$HOME_DIR/.config/noctalia/storage.key"
