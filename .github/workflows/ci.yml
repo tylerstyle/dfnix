@@ -31,7 +31,7 @@ jobs:
 
       - name: Validate Custom Forensic Packages
         run: |
-          for pkg in dfdisk dfmount dfnet dfinfo dwarf2json regripper; do
+          for pkg in dfdisk dfmount dfnet dfinfo dfnix-guide dwarf2json regripper; do
             echo "Evaluating derivation for $pkg..."
             nix eval ".#packages.x86_64-linux.${pkg}.drvPath"
           done

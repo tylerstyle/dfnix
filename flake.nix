@@ -12,13 +12,13 @@
 
     # Dedicated Forensic Storage Mounter by Tylerstyle
     dfmount = {
-      url = "git+ssh://git@github.com/tylerstyle/dfmount.git";
+      url = "github:tylerstyle/dfmount";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Dedicated Forensic Network Operations by Tylerstyle
     dfnet = {
-      url = "git+ssh://git@github.com/tylerstyle/dfnet.git";
+      url = "github:tylerstyle/dfnet";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
