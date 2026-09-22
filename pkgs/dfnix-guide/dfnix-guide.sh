@@ -29,6 +29,7 @@ if [[ "${1:-}" != "--raw" && "${1:-}" != "--inner" ]] && [[ ! -t 0 || -z "${TERM
             -o window_padding_width=16 \
             -o initial_window_width=95c \
             -o initial_window_height=38c \
+            -o "map esc close_window" \
             "$0" --inner "$@"
     fi
 fi
@@ -54,7 +55,7 @@ render_guide() {
 ${B_CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}
 ${B_CYAN}║              dfnix — Forensic Live Environment Quick Start Guide             ║${NC}
 ${B_CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}
-${DIM}Press [q] or [Ctrl+C] to exit  •  Use Arrow Keys or [PageUp]/[PageDown] to scroll${NC}
+${DIM}Press [Esc], [q], or [Ctrl+C] to exit  •  Use Arrow Keys or [PageUp]/[PageDown] to scroll${NC}
 ${DIM}Press [/] followed by a word to search (e.g. /mount, /image, /niri)${NC}
 
 ${B_GREEN}■ THE 3-STEP FORENSIC WORKFLOW${NC}
@@ -165,7 +166,7 @@ Windows are arranged in vertical columns that scroll horizontally.
 ${B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐${NC}
 ${B_CYAN}│ KEYBINDING             ACTION                                                │${NC}
 ${B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤${NC}
-│ ${YELLOW}F1${NC} or ${YELLOW}Mod + F1${NC}         ${WHITE}Toggle this Quick Start Guide (Floating Info Window)${NC}  │
+│ ${YELLOW}F1${NC} or ${YELLOW}Mod + F1${NC}         ${WHITE}Toggle this Quick Start & Help Guide (Floating Window)${NC}  │
 │ ${YELLOW}Mod + Space${NC}             ${WHITE}Toggle Noctalia Application Launcher${NC}                  │
 │ ${YELLOW}Mod + S${NC}                 ${WHITE}Toggle Noctalia Control Center (Audio, Wi-Fi, Power)${NC}  │
 │ ${YELLOW}Mod + Return${NC} / ${YELLOW}Mod + T${NC}  ${WHITE}Open Kitty Terminal${NC}                                   │
@@ -224,7 +225,7 @@ ${B_YELLOW}5. ADVANCED TOOLS & CAPABILITIES${NC}
   ${CYAN}man ewfacquire${NC}                  # View specific manual
 
 ────────────────────────────────────────────────────────────────────────────────
-${DIM}Tip: You can redisplay this guide anytime by hitting [F1] or clicking [Info] on the top bar.${NC}
+${DIM}Tip: You can redisplay this guide anytime by hitting [F1] or clicking [Help] on the top bar.${NC}
 EOF
 }
 
@@ -234,5 +235,7 @@ if [[ "${1:-}" == "--raw" ]] || [[ ! -t 1 ]]; then
     exit 0
 fi
 
-# Run in pager
-render_guide | less -R -P " dfnix Quick Start Guide  |  Arrows/PageUp/PageDown: Scroll  |  /: Search  |  q: Quit "
+# Run in pager with Esc and q both configured to exit immediately
+render_guide | less -R \
+    --lesskey-content="#command;\e quit;q quit;Q quit" \
+    -P " dfnix Quick Start & Help Guide  |  Arrows/PageUp/PageDown: Scroll  |  /: Search  |  [Esc] or [q]: Close "
