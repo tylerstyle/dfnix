@@ -7,7 +7,7 @@ stdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "keydet89";
     repo = "RegRipper3.0";
-    rev = "master";
+    rev = "ec96dd4a6a5c3ea70d8fece9b47a374f83582335";
     hash = "sha256-J5D1RjcyTUnJw7c99V/QbrgFr9XWh21JCT8rbwrtFpA=";
   };
 

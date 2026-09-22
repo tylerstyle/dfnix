@@ -138,8 +138,8 @@ let
       export DISPLAY=":0"
     fi
 
-    if [[ -z "''${XAUTHORITY:-}" && -f /home/nixos/.Xauthority ]]; then
-      export XAUTHORITY="/home/nixos/.Xauthority"
+    if [[ -z "''${XAUTHORITY:-}" && -f "''${HOME:-/home/nixos}/.Xauthority" ]]; then
+      export XAUTHORITY="''${HOME:-/home/nixos}/.Xauthority"
     fi
 
     # Authorize root on X11 if display is active
@@ -222,7 +222,7 @@ let
         "/media/evidence"
         "/media"
         "/run/media"
-        "/home/nixos/Desktop"
+        "''${HOME:-/home/nixos}/Desktop"
         "/root/Desktop"
       )
 

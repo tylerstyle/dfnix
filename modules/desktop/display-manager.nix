@@ -133,13 +133,23 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Enable Direct TTY1 Autologin with Niri Wayland and XFCE fallback.";
+      description = "Enable Direct TTY1 session with Niri Wayland and XFCE fallback.";
+    };
+    autologin = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable automatic login on TTY1.";
+    };
+    autologinUser = mkOption {
+      type = types.str;
+      default = "nixos";
+      description = "User account to automatically log in on TTY1.";
     };
   };
 
   config = mkIf config.dfnix.desktop.displayManager.enable {
-    # 1. Direct TTY1 autologin without SDDM/LightDM friction
-    services.getty.autologinUser = "nixos";
+    # 1. Direct TTY1 autologin when enabled
+    services.getty.autologinUser = mkIf config.dfnix.desktop.displayManager.autologin config.dfnix.desktop.displayManager.autologinUser;
 
     # Explicitly ensure ALL display managers (SDDM, LightDM, GDM) are completely disabled
     services.xserver.displayManager.lightdm.enable = mkForce false;
@@ -149,16 +159,6 @@ in
     # Completely disable GNOME Keyring to eliminate "Choose password for new keyring" prompts
     services.gnome.gnome-keyring.enable = mkForce false;
     security.pam.services.login.enableGnomeKeyring = false;
-
-    # 2. Live ISO user privileges & passwordless login/sudo
-    users.users.nixos = {
-      isNormalUser = true;
-      extraGroups = [ "wheel" "disk" "storage" "networkmanager" "video" "audio" "input" ];
-      description = "Forensic Field Examiner";
-      initialHashedPassword = "";
-    };
-    users.users.root.initialHashedPassword = "";
-    security.sudo.wheelNeedsPassword = false;
 
     # 3. Session and helper scripts
     environment.systemPackages = [

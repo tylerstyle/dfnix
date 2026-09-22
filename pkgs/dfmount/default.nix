@@ -5,6 +5,7 @@
 , gawk
 , gnugrep
 , coreutils
+, jq
 , python3
 , wrapGAppsHook4
 , gtk4
@@ -50,6 +51,7 @@ stdenv.mkDerivation rec {
         gawk
         gnugrep
         coreutils
+        jq
       ]}:$out/bin
 
     # 2. Install CLI script
@@ -62,6 +64,7 @@ stdenv.mkDerivation rec {
         gawk
         gnugrep
         coreutils
+        jq
       ]}
 
     # Compatibility symlinks

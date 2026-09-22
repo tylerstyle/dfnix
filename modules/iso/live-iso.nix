@@ -125,7 +125,7 @@
       fi
 
       echo ">>> dfnix: Copying forensic live OS into RAM (please wait)..."
-      if cp -r /tmp-iso/* /sysroot/iso/ 2>/dev/null || cp -a /tmp-iso/. /sysroot/iso/ 2>/dev/null; then
+      if cp -a /tmp-iso/. /sysroot/iso/; then
         echo ">>> dfnix: Live OS successfully loaded into RAM. Boot media may now be safely removed."
         umount /tmp-iso 2>/dev/null || umount -l /tmp-iso 2>/dev/null || true
         rm -rf /tmp-iso 2>/dev/null || true
@@ -157,4 +157,19 @@
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "de";
+
+  # ----------------------------------------------------------------------------
+  # Live ISO User & Autologin Configuration
+  # ----------------------------------------------------------------------------
+  dfnix.desktop.displayManager.autologin = true;
+  dfnix.desktop.displayManager.autologinUser = "nixos";
+
+  users.users.nixos = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "disk" "storage" "networkmanager" "video" "audio" "input" ];
+    description = "Forensic Field Examiner";
+    initialHashedPassword = "";
+  };
+  users.users.root.initialHashedPassword = "";
+  security.sudo.wheelNeedsPassword = false;
 }
