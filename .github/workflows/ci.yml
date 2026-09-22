@@ -53,8 +53,7 @@ jobs:
         run: |
           nix run nixpkgs#shellcheck -- \
             pkgs/dfinfo/dfinfo.sh \
-            pkgs/dfmount/dfmount.sh \
-            pkgs/dfnet/dfnet.sh \
+            pkgs/dfnix-guide/dfnix-guide.sh \
             scripts/flash.sh \
             scripts/run-vm.sh
 

@@ -9,23 +9,31 @@
       url = "github:tylerstyle/dfdisk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Dedicated Forensic Storage Mounter by Tylerstyle
+    dfmount = {
+      url = "git+ssh://git@github.com/tylerstyle/dfmount.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Dedicated Forensic Network Operations by Tylerstyle
+    dfnet = {
+      url = "git+ssh://git@github.com/tylerstyle/dfnet.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, dfdisk, ... }@inputs:
+  outputs = { self, nixpkgs, dfdisk, dfmount, dfnet, ... }@inputs:
     let
       supportedSystems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
       # Custom packages overlay
       forensicsOverlay = final: prev: {
-        # dfdisk from flake input or fallback to local derivation
+        # Upstream forensic tools from flake inputs
         dfdisk = dfdisk.packages.${prev.stdenv.hostPlatform.system}.default;
-        
-        # Dedicated Forensic Mounter & Target Unblocker
-        dfmount = final.callPackage ./pkgs/dfmount { };
-
-        # Dedicated Forensic Network Operations & Triage
-        dfnet = final.callPackage ./pkgs/dfnet { };
+        dfmount = dfmount.packages.${prev.stdenv.hostPlatform.system}.default;
+        dfnet = dfnet.packages.${prev.stdenv.hostPlatform.system}.default;
 
         # Forensic System Triage & Fastfetch Reporter
         dfinfo = final.callPackage ./pkgs/dfinfo { };
