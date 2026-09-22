@@ -31,15 +31,15 @@
       "locked": {
         "lastModified": 1790076398,
         "narHash": "sha256-a0zpBEbivInUyXhHkN9u09oK+JN6/yeFACvisvelvno=",
-        "ref": "refs/heads/main",
+        "owner": "tylerstyle",
+        "repo": "dfmount",
         "rev": "a89b9c01bec9cf29556b724b8fa9f041fdcf5edf",
-        "revCount": 6,
-        "type": "git",
-        "url": "ssh://git@github.com/tylerstyle/dfmount.git"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/tylerstyle/dfmount.git"
+        "owner": "tylerstyle",
+        "repo": "dfmount",
+        "type": "github"
       }
     },
     "dfnet": {
@@ -52,15 +52,15 @@
       "locked": {
         "lastModified": 1790077307,
         "narHash": "sha256-BZWyrlbkrCf6piUrT3o/Sxa3KaGHXUFEwhR2p6R1yR8=",
-        "ref": "refs/heads/main",
+        "owner": "tylerstyle",
+        "repo": "dfnet",
         "rev": "57feb8d4f0d23d96d2ab1dcfad8e318a60798abb",
-        "revCount": 7,
-        "type": "git",
-        "url": "ssh://git@github.com/tylerstyle/dfnet.git"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/tylerstyle/dfnet.git"
+        "owner": "tylerstyle",
+        "repo": "dfnet",
+        "type": "github"
       }
     },
     "flake-utils": {
