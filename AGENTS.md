@@ -22,22 +22,20 @@ This document contains critical architectural context, repository boundaries, an
 
 ## 🚨 Golden Rules for AI Agents
 
-### 1. Never modify a tool only inside `dfnix/pkgs/`
+### 1. Never modify forensic tools inside `dfnix`
 If a user requests changes, bug fixes, or new features in **`dfnet`**, **`dfmount`**, or **`dfdisk`**:
-- **First, locate the tool's standalone repository** at `~/git/<tool>` (e.g. `/home/df/git/dfnet`).
-- **Implement and verify the change in the tool's repository** (`src/main.rs`, `Cargo.toml`, `scripts/`, etc.).
-- **Verify compilation and tests** in that repository (`cargo check`, `cargo test`).
-- **Sync companion scripts or derivations** in `dfnix/pkgs/<tool>/` if `dfnix` vendors or packages matching scripts (e.g., `pkgs/dfnet/dfnet.sh`, `pkgs/dfmount/dfmount.sh`).
+- **Always work in the tool's standalone repository** at `~/git/<tool>` (e.g. `/home/df/git/dfmount`, `/home/df/git/dfnet`, `/home/df/git/dfdisk`).
+- **Implement and verify the change in the tool's repository** (`src/main.rs`, `Cargo.toml`, `scripts/`, `package.nix`, `flake.nix`).
+- **Verify compilation and tests** in that repository (`cargo check`, `cargo test`, `nix-build default.nix`).
+- **Commit and push** in that repository. `dfnix` consumes them directly as flake inputs or delegates to their `package.nix`. No scripts or code are vendored in `dfnix`.
 
 ### 2. Know where each tool is integrated in `dfnix`
 - **`dfdisk`**:
-  - Pinned in `flake.nix` (`inputs.dfdisk.url = "github:tylerstyle/dfdisk"`) and packaged via `pkgs/dfdisk/default.nix` using `fetchFromGitHub`.
+  - Flake input (`inputs.dfdisk.url = "github:tylerstyle/dfdisk"`). Standalone repo: `~/git/dfdisk`.
 - **`dfmount`**:
-  - Packaged via `pkgs/dfmount/default.nix`.
-  - Companion scripts in `pkgs/dfmount/` (`dfmount.sh`, `dfmount-tui.py`, `dfmount-gui.py`) mirror upstream `~/git/dfmount/scripts/`.
+  - Flake input (`inputs.dfmount.url = "github:tylerstyle/dfmount"`). Standalone repo: `~/git/dfmount`.
 - **`dfnet`**:
-  - Packaged via `pkgs/dfnet/default.nix`.
-  - Standalone Rust binary at `~/git/dfnet`, companion script at `~/git/dfnet/scripts/dfnet.sh` mirrored in `dfnix/pkgs/dfnet/dfnet.sh`.
+  - Flake input (`inputs.dfnet.url = "github:tylerstyle/dfnet"`). Standalone repo: `~/git/dfnet`.
 - **`dfinfo`**:
   - Local to `dfnix/pkgs/dfinfo/` (does not have an independent external repository).
 
