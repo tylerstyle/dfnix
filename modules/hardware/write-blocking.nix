@@ -33,19 +33,34 @@ with lib;
       # 1. Neutralize Swap Partitions on attached evidence drives
       ENV{ID_FS_TYPE}=="swap", ENV{SYSTEMD_READY}="0"
 
-      # 2. Force Read-Only at the kernel block level for all disk and partition nodes
-      ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="sd*|nvme*|mmcblk*|vd*|xvd*|loop*|dm-*|md*|nbd*", \
+      # 2. Inhibit automatic MDADM RAID array assembly on hotplug
+      SUBSYSTEM=="block", ACTION=="add", ENV{ID_FS_TYPE}=="linux_raid_member", ENV{SYSTEMD_READY}="0"
+
+      # 3. Explicitly bypass write-blocking for live boot media
+      ENV{ID_FS_LABEL}=="DFNIX_LIVE", GOTO="dfnix_write_block_end"
+
+      # 4. Force Read-Only at the kernel block level for physical attached storage
+      # Restrict to physical and hypervisor block devices (SATA/SCSI/USB, NVMe, MMC/SD, VirtIO, Xen).
+      # Exclude synthetic/mapped devices (loop*, dm-*, md*, nbd*) to allow decrypted LUKS
+      # target containers, software RAID arrays, and live system overlays to function writeable.
+      ACTION=="add", SUBSYSTEM=="block", \
+        KERNEL=="sd[a-z]*|nvme[0-9]*n[0-9]*|nvme[0-9]*n[0-9]*p[0-9]*|mmcblk[0-9]*|mmcblk[0-9]*p[0-9]*|vd[a-z]*|xvd[a-z]*", \
         ATTR{ro}="1", \
         RUN+="${pkgs.util-linux}/bin/blockdev --setro $env{DEVNAME}"
 
-      # 3. Prevent udisks2 and desktop volume managers from automounting or probing
+      # 5. Handle genuine media insertion in removable card readers
+      ACTION=="change", SUBSYSTEM=="block", ENV{DISK_MEDIA_CHANGE}=="1", \
+        KERNEL=="sd[a-z]*|mmcblk[0-9]*|mmcblk[0-9]*p[0-9]*", \
+        ATTR{ro}="1", \
+        RUN+="${pkgs.util-linux}/bin/blockdev --setro $env{DEVNAME}"
+
+      # 6. Prevent udisks2 and desktop volume managers from automounting or probing
       ACTION=="add|change", SUBSYSTEM=="block", \
         ENV{UDISKS_IGNORE}="1", \
         ENV{UDISKS_AUTO}="0", \
         ENV{UDISKS_SYSTEM}="1"
 
-      # 4. Inhibit automatic MDADM RAID array assembly on hotplug
-      SUBSYSTEM=="block", ACTION=="add", ENV{ID_FS_TYPE}=="linux_raid_member", ENV{SYSTEMD_READY}="0"
+      LABEL="dfnix_write_block_end"
     '';
 
     # --------------------------------------------------------------------------
