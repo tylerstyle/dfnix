@@ -308,7 +308,7 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 
 | Keybinding | Action |
 | :--- | :--- |
-| `F1` / `Mod+F1` | Launch **dfnix-guide** Quick Start & Keybindings (Floating Info) |
+| `F1` / `Mod+F1` | Launch **dfnix-guide** Quick Start & Keybindings (Floating Help Window) |
 | `Mod+D` | Launch **dfdisk** in Kitty (sudo) |
 | `Mod+M` | Launch **dfmount** GUI (sudo) |
 | `Mod+N` | Launch **dfnet** in Kitty (sudo) |
