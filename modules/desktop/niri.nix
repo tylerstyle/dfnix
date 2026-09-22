@@ -98,6 +98,7 @@ with lib;
       "C /home/nixos/.config/noctalia/config.toml 0644 nixos users - ${../../configs/noctalia/config.toml}"
       "C /home/nixos/.local/state/noctalia/settings.toml 0644 nixos users - ${../../configs/noctalia/settings.toml}"
       "f /home/nixos/.local/state/noctalia/.setup-complete 0644 nixos users - -"
+      # Static dummy seed key for live ISO Noctalia UI settings (suppresses keyring popups on read-only media)
       "f /home/nixos/.config/noctalia/storage.key 0600 nixos users - 4a6f72656e7369635365637265744b6579313233343536373839616263646566"
 
       # Kitty & Starship configs
@@ -116,6 +117,7 @@ with lib;
       cp -f ${../../configs/noctalia/config.toml} /etc/skel/.config/noctalia/config.toml 2>/dev/null || true
       cp -f ${../../configs/noctalia/settings.toml} /etc/skel/.local/state/noctalia/settings.toml 2>/dev/null || true
       touch /etc/skel/.local/state/noctalia/.setup-complete 2>/dev/null || true
+      # Static dummy seed key for live ISO Noctalia UI settings (suppresses keyring popups on read-only media)
       echo "4a6f72656e7369635365637265744b6579313233343536373839616263646566" > /etc/skel/.config/noctalia/storage.key 2>/dev/null || true
       chmod 0600 /etc/skel/.config/noctalia/storage.key 2>/dev/null || true
       cp -f ${../../configs/kitty/kitty.conf} /etc/skel/.config/kitty/kitty.conf 2>/dev/null || true
