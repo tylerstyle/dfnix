@@ -1,0 +1,62 @@
+name: "dfnix CI"
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  nix-flake-check:
+    name: "Nix Flake Check & Evaluation"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v14
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Check Flake Schema & System Assertions
+        run: nix flake check --show-trace
+
+      - name: Validate Live ISO Derivation
+        run: nix eval .#packages.x86_64-linux.iso.drvPath
+
+      - name: Validate Prototyping VM Derivation
+        run: nix eval .#packages.x86_64-linux.vm.drvPath
+
+      - name: Validate Custom Forensic Packages
+        run: |
+          for pkg in dfdisk dfmount dfnet dfinfo dwarf2json regripper; do
+            echo "Evaluating derivation for $pkg..."
+            nix eval ".#packages.x86_64-linux.${pkg}.drvPath"
+          done
+
+  lint:
+    name: "ShellCheck & Linting"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v14
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Run ShellCheck on Forensic Scripts
+        run: |
+          nix run nixpkgs#shellcheck -- \
+            pkgs/dfinfo/dfinfo.sh \
+            pkgs/dfmount/dfmount.sh \
+            pkgs/dfnet/dfnet.sh \
+            scripts/flash.sh \
+            scripts/run-vm.sh
+
+      - name: Run Make Check (Syntax & Evaluator Verification)
+        run: make check

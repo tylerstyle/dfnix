@@ -34,7 +34,7 @@ with lib;
       ENV{ID_FS_TYPE}=="swap", ENV{SYSTEMD_READY}="0"
 
       # 2. Force Read-Only at the kernel block level for all disk and partition nodes
-      ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="sd[a-z]*|nvme[0-9]*n[0-9]*|mmcblk[0-9]*|vd[a-z]*", \
+      ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="sd*|nvme*|mmcblk*|vd*|xvd*|loop*|dm-*|md*|nbd*", \
         ATTR{ro}="1", \
         RUN+="${pkgs.util-linux}/bin/blockdev --setro $env{DEVNAME}"
 

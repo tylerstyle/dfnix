@@ -1,0 +1,7 @@
+# See AGENTS.md for full instructions and multi-repo guidelines.
+
+- dfnix is the NixOS distribution configuration and integration repo, NOT a monorepo for dfdisk, dfmount, dfnet.
+- dfdisk, dfmount, and dfnet are independent Git projects located under ~/git/dfXXX (e.g. /home/df/git/dfnet).
+- When modifying, debugging, or adding features to dfdisk, dfmount, or dfnet: ALWAYS make changes in ~/git/dfXXX, test with cargo check/test, and keep dfnix/pkgs/ synced if applicable.
+- Never modify a tool solely inside dfnix/pkgs/ when an upstream repo exists.
+- Run `make check` in dfnix before finishing any edits.

@@ -28,6 +28,19 @@
 
 ---
 
+## 📦 Multi-Repository Architecture
+
+> [!IMPORTANT]
+> `dfnix` is the **distribution and system integration repository**. The core forensic tools packaged into `dfnix` are maintained as **separate, independent Git repositories**:
+> - **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** (`~/git/dfdisk`): Modern forensic disk imaging, damaged media rescue (.E01 / raw), and hash verification (Rust).
+> - **[`dfmount`](https://github.com/tylerstyle/dfmount)** (`~/git/dfmount`): Forensic storage mounter (zero journal replay) & target unblocker (Rust TUI + Python/Bash).
+> - **[`dfnet`](https://github.com/tylerstyle/dfnet)** (`~/git/dfnet`): Modern network triage, MAC spoofing, Wi-Fi hotspot AP, share ingest, and raw disk receiver (Rust TUI + Bash).
+> - **[`df-datenbank`](https://github.com/tylerstyle/df-datenbank)** (`~/git/df-datenbank`): Case & evidence database.
+>
+> **For Developers & AI Agents:** See [`AGENTS.md`](AGENTS.md) for contribution guidelines and multi-repository sync instructions.
+
+---
+
 ## 📐 Project Architecture
 
 ```

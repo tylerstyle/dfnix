@@ -87,6 +87,52 @@
             ./modules/desktop/xfce.nix
             ./modules/desktop/display-manager.nix
 
+            # Base desktop environment, graphics, fonts, and VM variant
+            ({ pkgs, ... }: {
+              # Hardware Mesa DRI Graphics Acceleration
+              hardware.graphics = {
+                enable = true;
+                enable32Bit = true;
+              };
+
+              # Keyboard layout
+              services.xserver.xkb = {
+                layout = "de,us";
+                options = "grp:alt_shift_toggle";
+              };
+
+              # Fonts for Noctalia UI, Kitty terminal & forensic glyphs
+              fonts.packages = with pkgs; [
+                noto-fonts
+                noto-fonts-cjk-sans
+                noto-fonts-color-emoji
+                nerd-fonts.fira-code
+                nerd-fonts.symbols-only
+              ];
+
+              # Additional system packages
+              environment.systemPackages = with pkgs; [
+                firefox
+                chromium
+              ];
+
+              # Starship prompt
+              programs.starship = {
+                enable = true;
+                presets = [ ];
+              };
+              programs.bash.completion.enable = true;
+
+              # Rapid Prototyping VM resources (applied when building system.build.vm)
+              virtualisation.vmVariant = {
+                virtualisation.memorySize = 8192; # 8 GiB RAM
+                virtualisation.cores = 4;         # 4 CPU cores
+                virtualisation.efi.OVMF = pkgs.OVMF // { systemManagementModeRequired = false; };
+                boot.kernelParams = nixpkgs.lib.mkVMOverride [ "panic=10" ]; # Skip copytoram in VM closure
+                boot.initrd.systemd.services.copytoram.enable = false;
+              };
+            })
+
             # Global desktop application entries & branding icons
             ({ pkgs, ... }: {
               environment.systemPackages = [
@@ -145,22 +191,46 @@
           ];
         };
 
-        # Target 2: Persistent Lab Workstation Profile
+        # Target 2: Persistent Lab Workstation Profile (Standalone test configuration)
         df-forensics-workstation = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
           modules = [
+            self.nixosModules.workstation
             {
-              nixpkgs.overlays = [ forensicsOverlay ];
-              nixpkgs.config.allowUnfree = true;
+              system.stateVersion = "24.11";
+              boot.loader.grub.devices = [ "/dev/sda" ];
+              fileSystems."/" = {
+                device = "/dev/disk/by-label/nixos";
+                fsType = "ext4";
+              };
             }
-            ./modules/hardware/write-blocking.nix
+          ];
+        };
+      };
+
+      # Export reusable NixOS modules for persistent installations
+      nixosModules = {
+        forensics = ./modules/forensics/default.nix;
+        writeBlocking = ./modules/hardware/write-blocking.nix;
+        niri = ./modules/desktop/niri.nix;
+        xfce = ./modules/desktop/xfce.nix;
+        displayManager = ./modules/desktop/display-manager.nix;
+        liveIso = ./modules/iso/live-iso.nix;
+        wineXways = ./modules/forensics/wine-xways.nix;
+
+        workstation = { pkgs, ... }: {
+          nixpkgs.overlays = [ forensicsOverlay ];
+          nixpkgs.config.allowUnfree = true;
+          imports = [
             ./modules/forensics/default.nix
             ./modules/desktop/niri.nix
             ./modules/desktop/xfce.nix
             ./modules/desktop/display-manager.nix
           ];
+          hardware.graphics.enable = true;
         };
+        default = self.nixosModules.workstation;
       };
     };
 }

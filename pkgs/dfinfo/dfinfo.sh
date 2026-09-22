@@ -11,10 +11,8 @@ set -euo pipefail
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-DIM='\033[2m'
 NC='\033[0m'
 
 # Helper: read DMI safely (falls back to /sys/class/dmi/id)
@@ -182,7 +180,11 @@ EOF
 EOF
 
     if command -v lspci >/dev/null 2>&1; then
-        lspci 2>/dev/null | grep -E "VGA|3D|Display|Non-Volatile|SATA|SCSI|RAID|Ethernet|Network|USB" || lspci 2>/dev/null || true >> "$tmp_report"
+        {
+            lspci 2>/dev/null | grep -E "VGA|3D|Display|Non-Volatile|SATA|SCSI|RAID|Ethernet|Network|USB" \
+                || lspci 2>/dev/null \
+                || true
+        } >> "$tmp_report"
     else
         echo "lspci not available" >> "$tmp_report"
     fi
@@ -192,22 +194,24 @@ EOF
 ================================================================================
 7. CRYPTOGRAPHIC VERIFICATION & REPORT INTEGRITY
 ================================================================================
+Generated File:    $(basename "$out_file")
+Verification Note: Cryptographic SHA-256 digest is calculated over the entire final report.
+                   See companion detached hash manifest: $(basename "$out_file").sha256
+================================================================================
 EOF
-
-    # Calculate SHA-256 over report content up to this point
-    local sha256_hash
-    sha256_hash=$(sha256sum "$tmp_report" | awk '{print $1}')
-    echo "SHA-256 Checksum:  ${sha256_hash}" >> "$tmp_report"
-    echo "Generated File:    $(basename "$out_file")" >> "$tmp_report"
-    echo "================================================================================" >> "$tmp_report"
 
     # Move to final location
     mkdir -p "$(dirname "$out_file")"
     mv "$tmp_report" "$out_file"
 
+    # Calculate SHA-256 over final complete file and create detached checksum manifest
+    local sha256_hash
+    sha256_hash=$(sha256sum "$out_file" | awk '{print $1}')
+    (cd "$(dirname "$out_file")" && sha256sum "$(basename "$out_file")" > "$(basename "$out_file").sha256")
+
     # Ensure ownership is readable by standard live user if written to home
     if [[ "$out_file" == *"/home/nixos"* ]] && id nixos >/dev/null 2>&1; then
-        chown nixos:users "$out_file" 2>/dev/null || true
+        chown nixos:users "$out_file" "${out_file}.sha256" 2>/dev/null || true
     fi
 
     echo "$sha256_hash"
@@ -263,6 +267,7 @@ run_interactive() {
                 echo -e "    ${BOLD}Path:${NC}   $target_file"
                 echo -e "    ${BOLD}Size:${NC}   $fsize bytes"
                 echo -e "    ${BOLD}SHA256:${NC} $hash"
+                echo -e "    ${BOLD}Hash Manifest:${NC} ${target_file}.sha256"
                 echo ""
                 read -rp "Press [Enter] or [Q] to exit..." _
                 exit 0
@@ -363,7 +368,8 @@ main() {
         echo -e "${GREEN}[✓] Report saved successfully.${NC}"
         echo -e "    File:   $out_path"
         echo -e "    Size:   $fsize bytes"
-        echo -e "    SHA256: $hash"
+        echo -e "    SHA256:   $hash"
+        echo -e "    Manifest: ${out_path}.sha256"
         exit 0
     fi
 

@@ -211,9 +211,9 @@ if [ "$MODE" = "vm" ]; then
     GUI_GPU_OPTS=()
     if [ "$DISPLAY_MODE" = "gui" ]; then
         if qemu-system-x86_64 -display gtk,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
-            GUI_GPU_OPTS=(-device virtio-vga-gl -display gtk,gl=on)
+            GUI_GPU_OPTS=(-device virtio-vga-gl -display "gtk,gl=on")
         elif qemu-system-x86_64 -display sdl,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
-            GUI_GPU_OPTS=(-device virtio-vga-gl -display sdl,gl=on)
+            GUI_GPU_OPTS=(-device virtio-vga-gl -display "sdl,gl=on")
         else
             GUI_GPU_OPTS=(-vga virtio)
         fi
@@ -256,16 +256,16 @@ QEMU_CMD=(
     "${KVM_OPTS[@]}"
     -boot d
     -cdrom "$ISO_PATH"
-    -drive file="${EVIDENCE_IMG}",format=raw,if=virtio,id=evidence
-    -drive file="${TARGET_IMG}",format=raw,if=virtio,id=target
-    -nic user,model=virtio-net-pci,hostfwd=tcp::"${SSH_PORT}"-:22
+    -drive "file=${EVIDENCE_IMG},format=raw,if=virtio,id=evidence"
+    -drive "file=${TARGET_IMG},format=raw,if=virtio,id=target"
+    -nic "user,model=virtio-net-pci,hostfwd=tcp::${SSH_PORT}-:22"
 )
 
 if [ "$DISPLAY_MODE" = "gui" ]; then
     if qemu-system-x86_64 -display gtk,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
-        ISO_GPU_OPTS=(-device virtio-vga-gl -display gtk,gl=on)
+        ISO_GPU_OPTS=(-device virtio-vga-gl -display "gtk,gl=on")
     elif qemu-system-x86_64 -display sdl,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
-        ISO_GPU_OPTS=(-device virtio-vga-gl -display sdl,gl=on)
+        ISO_GPU_OPTS=(-device virtio-vga-gl -display "sdl,gl=on")
     else
         ISO_GPU_OPTS=(-vga virtio)
     fi

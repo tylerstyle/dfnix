@@ -4,8 +4,6 @@
 
 .PHONY: help iso vm check test-qemu test-vm test-headless flash clean
 
-DEV ?= /dev/sda
-
 help:
 	@echo "dfnix Build System (Flakeless NixOS)"
 	@echo ""
@@ -20,7 +18,7 @@ help:
 	@echo "  make test-headless  Force headless QEMU with SPICE (5930), VNC (5901), & SSH (2222)"
 	@echo ""
 	@echo "Deployment & Utilities:"
-	@echo "  make flash          Flash the built ISO onto USB stick (default: DEV=/dev/sda)"
+	@echo "  make flash DEV=/dev/sdX  Flash the built ISO onto USB stick (requires DEV)"
 	@echo "  make clean          Remove Nix build results and temporary drive artifacts"
 	@echo ""
 
@@ -33,11 +31,21 @@ vm:
 	nix-build -A vm -o result-vm
 
 flash:
+ifndef DEV
+	@echo "[-] Error: Target USB device not specified."
+	@echo "    Usage: make flash DEV=/dev/sdX"
+	@echo ""
+	@echo "[*] Available removable/USB block devices:"
+	@lsblk -d -o NAME,SIZE,TYPE,VENDOR,MODEL,TRAN,RM 2>/dev/null || true
+	@exit 1
+endif
 	@echo "==> Flashing dfnix ISO onto $(DEV)..."
 	@./scripts/flash.sh $(DEV)
 
 check:
-	@echo "==> Evaluating configuration syntax..."
+	@echo "==> Running flake evaluation checks..."
+	nix flake check --no-build
+	@echo "==> Evaluating flakeless legacy syntax..."
 	nix-instantiate --eval -E '(import ./default.nix {}).system.drvPath'
 
 test-qemu:

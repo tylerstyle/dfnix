@@ -18,7 +18,6 @@ with lib;
 
     # 2. Wayland session environment variables
     environment.sessionVariables = {
-      NIRI_CONFIG = "/home/nixos/.config/niri/config.kdl";
       NIXOS_OZONE_WL = "1";
       QT_QPA_PLATFORM = "wayland;xcb";
       QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
@@ -28,10 +27,9 @@ with lib;
       XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
     };
 
-    # Explicitly ensure systemd user service for Niri receives NIRI_CONFIG
+    # Explicitly ensure systemd user service for Niri
     systemd.user.services.niri = {
       environment = {
-        NIRI_CONFIG = "/home/nixos/.config/niri/config.kdl";
         XDG_CURRENT_DESKTOP = "Niri";
         NIXOS_OZONE_WL = "1";
         QT_QPA_PLATFORM = "wayland;xcb";
@@ -80,8 +78,8 @@ with lib;
       "starship.toml".source = ../../configs/starship/starship.toml;
     };
 
-    # 5. Pre-populate live examiner home directory at boot before login
-    systemd.tmpfiles.rules = [
+    # 5. Pre-populate live examiner home directory at boot if nixos user exists
+    systemd.tmpfiles.rules = mkIf (config.users.users ? nixos) [
       "d /home/nixos 0755 nixos users -"
       "d /home/nixos/.config 0755 nixos users -"
       "d /home/nixos/.config/niri 0755 nixos users -"
