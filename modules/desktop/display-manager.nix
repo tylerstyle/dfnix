@@ -107,25 +107,38 @@ EOF
     # Use -l flag to prevent upstream niri-session from re-spawning a login shell loop
     niri-session -l
     EXIT_CODE=$?
+
+    # Check whether niri-session or the underlying niri.service failed
+    NIRI_FAILED=0
+    if [ $EXIT_CODE -ne 0 ]; then
+      NIRI_FAILED=1
+    elif systemctl --user is-failed -q niri.service 2>/dev/null; then
+      NIRI_FAILED=1
+    else
+      NIRI_RESULT=$(systemctl --user show -p Result --value niri.service 2>/dev/null || true)
+      if [ -n "$NIRI_RESULT" ] && [ "$NIRI_RESULT" != "success" ]; then
+        NIRI_FAILED=1
+      fi
+    fi
     set -e
 
-    # If Niri failed (e.g. timeout due to missing 3D GPU acceleration, or crash)
-    if [ $EXIT_CODE -ne 0 ]; then
+    # If Niri failed (e.g. missing 3D GPU acceleration, crash, or startup timeout)
+    if [ $NIRI_FAILED -ne 0 ]; then
       echo ""
-      echo ">>> WARNING: Niri Wayland session failed or timed out (exit code $EXIT_CODE)."
+      echo ">>> WARNING: Niri Wayland session failed (exit code $EXIT_CODE, result: ''${NIRI_RESULT:-failed})."
       echo ">>> (Note: Niri requires OpenGL 3.3 / GLES 2.0 3D hardware acceleration)."
       echo ">>> Automatically launching universal XFCE desktop fallback in 2 seconds..."
       sleep 2 || true
-      rm -f /tmp/.dfnix-session-started
       exec ${startXfce}/bin/start-xfce
     fi
 
     clear
     ${dfnixBanner}/bin/dfnix-help
     echo ""
-    echo "Niri session exited with code: $EXIT_CODE"
+    echo "Niri session exited normally."
     echo ""
-    rm -f /tmp/.dfnix-session-started
+    # Note: Retain /tmp/.dfnix-session-started so returning to the console prompt
+    # does NOT re-launch Niri or enter an infinite loop.
     exec bash --login
   '';
 in

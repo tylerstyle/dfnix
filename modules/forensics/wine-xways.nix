@@ -216,14 +216,16 @@ let
     fi
 
     if [[ -z "$TARGET_EXE" ]]; then
-      # Search common external media and Desktop locations
+      # Search strictly in trusted application locations (never untrusted evidence mounts)
       SEARCH_PATHS=(
-        "/media/target"
-        "/media/evidence"
-        "/media"
-        "/run/media"
+        "/opt/xways"
+        "/etc/xways"
+        "''${HOME:-/home/nixos}/xways"
+        "''${HOME:-/home/nixos}/Desktop/xways"
         "''${HOME:-/home/nixos}/Desktop"
-        "/root/Desktop"
+        "/root/xways"
+        "/root/Desktop/xways"
+        "/media/target/xways"
       )
 
       # 1st Priority: 64-bit Forensics (optimal for memory-intensive forensic workloads)
@@ -265,9 +267,19 @@ let
     fi
 
     if [[ -z "$TARGET_EXE" || ! -f "$TARGET_EXE" ]]; then
-      echo "[!] Error: No X-Ways executable found."
+      echo "[!] Error: No X-Ways executable found in trusted locations."
       echo "Usage: xways [options] /path/to/xwforensics64.exe"
-      echo "Or ensure your portable X-Ways folder is on Desktop or mounted in /media/target."
+      echo "Or ensure your portable X-Ways folder is in /opt/xways, ~/Desktop/xways, or /media/target/xways."
+      exit 1
+    fi
+
+    # Forensic Safety Verification: Refuse execution of any binary on evidence or untrusted paths
+    REAL_TARGET="$(realpath "$TARGET_EXE" 2>/dev/null || echo "$TARGET_EXE")"
+    if [[ "$REAL_TARGET" == "/media/evidence"* || "$REAL_TARGET" == "/media/evidence" ]]; then
+      echo "[!] CRITICAL FORENSIC SAFETY REFUSAL: Refusing to execute binary from evidence path:" >&2
+      echo "    $REAL_TARGET" >&2
+      echo "    Suspect media must never supply analysis executables to root Wine." >&2
+      echo "    Install trusted forensic tools in /opt/xways, /media/target/xways, or ~/xways." >&2
       exit 1
     fi
 
@@ -275,9 +287,8 @@ let
     EXE_NAME=$(basename "$TARGET_EXE")
     echo "[*] Found X-Ways executable: $TARGET_EXE"
 
-    # 3. Check Feitian / CodeMeter License Dongle & Ensure Device Permissions
+    # 3. Check Feitian / CodeMeter License Dongle
     echo "[*] Checking for connected forensic license dongles..."
-    chmod 0666 /dev/hidraw* /dev/usb/hiddev* /dev/bus/usb/*/* 2>/dev/null || true
 
     DONGLE_FOUND=0
     if compgen -G "/dev/hidraw*" >/dev/null 2>&1; then

@@ -219,16 +219,15 @@ if [ "$MODE" = "vm" ]; then
         fi
         EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} ${GUI_GPU_OPTS[*]}"
     else
-        HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
         EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -vga virtio -device usb-tablet"
-        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -spice port=${SPICE_PORT},addr=0.0.0.0,disable-ticketing=on"
-        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -display vnc=0.0.0.0:${VNC_PORT}"
+        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -spice port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on"
+        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -display vnc=127.0.0.1:${VNC_PORT}"
 
-        echo ">>> Headless access endpoints:"
-        echo "    * SPICE: remote-viewer spice://${HOST_IP}:${SPICE_PORT}"
-        echo "    * VNC  : vncviewer ${HOST_IP}:$((5900 + VNC_PORT))"
-        echo "    * SSH  : ssh -p ${SSH_PORT} nixos@localhost (or nixos@${HOST_IP})"
-        echo "    * SSH Tunnel (from workstation): ssh -L $((5900 + VNC_PORT)):127.0.0.1:$((5900 + VNC_PORT)) -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
+        echo ">>> Headless access endpoints (bound to localhost for security):"
+        echo "    * Local SPICE: remote-viewer spice://127.0.0.1:${SPICE_PORT}"
+        echo "    * Local VNC  : vncviewer 127.0.0.1:$((5900 + VNC_PORT))"
+        echo "    * Local SSH  : ssh -p ${SSH_PORT} nixos@localhost"
+        echo "    * Remote SSH Tunnel (from client): ssh -L $((5900 + VNC_PORT)):127.0.0.1:$((5900 + VNC_PORT)) -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
         echo "------------------------------------------------------------------------"
     fi
 
@@ -275,21 +274,20 @@ if [ "$DISPLAY_MODE" = "gui" ]; then
         -device usb-tablet
     )
 else
-    HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "127.0.0.1")
     VNC_DISPLAY_NUM=$((5900 + VNC_PORT))
     QEMU_CMD+=(
         -vga virtio
         -usb
         -device usb-tablet
-        -spice "port=${SPICE_PORT},addr=0.0.0.0,disable-ticketing=on"
-        -display "vnc=0.0.0.0:${VNC_PORT}"
+        -spice "port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on"
+        -display "vnc=127.0.0.1:${VNC_PORT}"
     )
 
-    echo ">>> Headless access endpoints:"
-    echo "    * SPICE: remote-viewer spice://${HOST_IP}:${SPICE_PORT}"
-    echo "    * VNC  : vncviewer ${HOST_IP}:${VNC_DISPLAY_NUM}"
-    echo "    * SSH  : ssh -p ${SSH_PORT} nixos@localhost (or nixos@${HOST_IP})"
-    echo "    * SSH Tunnel (from local workstation): ssh -L ${VNC_DISPLAY_NUM}:127.0.0.1:${VNC_DISPLAY_NUM} -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
+    echo ">>> Headless access endpoints (bound to localhost for security):"
+    echo "    * Local SPICE: remote-viewer spice://127.0.0.1:${SPICE_PORT}"
+    echo "    * Local VNC  : vncviewer 127.0.0.1:${VNC_DISPLAY_NUM}"
+    echo "    * Local SSH  : ssh -p ${SSH_PORT} nixos@localhost"
+    echo "    * Remote SSH Tunnel (from local client): ssh -L ${VNC_DISPLAY_NUM}:127.0.0.1:${VNC_DISPLAY_NUM} -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
     echo "------------------------------------------------------------------------"
 fi
 
