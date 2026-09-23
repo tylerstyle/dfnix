@@ -24,7 +24,7 @@ if [[ "${1:-}" != "--raw" && "${1:-}" != "--inner" ]] && [[ ! -t 0 || -z "${TERM
     if command -v kitty >/dev/null 2>&1; then
         exec kitty \
             --class "dfnix-guide" \
-            --title "dfnix - Quick Start Guide" \
+            --title "dfnix - Quick Start & Help Guide" \
             -o font_size=11.5 \
             -o window_padding_width=16 \
             -o initial_window_width=95c \
@@ -235,7 +235,6 @@ if [[ "${1:-}" == "--raw" ]] || [[ ! -t 1 ]]; then
     exit 0
 fi
 
-# Run in pager with Esc and q both configured to exit immediately
+# Run in pager (arrow keys, mouse wheel, PageUp/Down scroll cleanly; Kitty closes window on Esc)
 render_guide | less -R \
-    --lesskey-content="#command;\e quit;q quit;Q quit" \
     -P " dfnix Quick Start & Help Guide  |  Arrows/PageUp/PageDown: Scroll  |  /: Search  |  [Esc] or [q]: Close "
