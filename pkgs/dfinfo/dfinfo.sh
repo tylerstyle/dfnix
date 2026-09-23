@@ -201,20 +201,29 @@ Verification Note: Cryptographic SHA-256 digest is calculated over the entire fi
 EOF
 
     # Move to final location
-    mkdir -p "$(dirname "$out_file")"
-    mv "$tmp_report" "$out_file"
+    mkdir -p "$(dirname "$out_file")" || {
+        echo -e "${RED}[!] Error: Failed to create output directory: $(dirname "$out_file")${NC}" >&2
+        rm -f "$tmp_report"
+        return 1
+    }
+    mv "$tmp_report" "$out_file" || {
+        echo -e "${RED}[!] Error: Failed to move report to: $out_file${NC}" >&2
+        rm -f "$tmp_report"
+        return 1
+    }
 
     # Calculate SHA-256 over final complete file and create detached checksum manifest
-    local sha256_hash
-    sha256_hash=$(sha256sum "$out_file" | awk '{print $1}')
-    (cd "$(dirname "$out_file")" && sha256sum "$(basename "$out_file")" > "$(basename "$out_file").sha256")
+    (cd "$(dirname "$out_file")" && sha256sum "$(basename "$out_file")" > "$(basename "$out_file").sha256") || {
+        echo -e "${RED}[!] Error: Failed to create checksum manifest: ${out_file}.sha256${NC}" >&2
+        return 1
+    }
 
     # Ensure ownership is readable by standard live user if written to home
     if [[ "$out_file" == *"/home/nixos"* ]] && id nixos >/dev/null 2>&1; then
         chown nixos:users "$out_file" "${out_file}.sha256" 2>/dev/null || true
     fi
 
-    echo "$sha256_hash"
+    return 0
 }
 
 # Display full interactive view
@@ -347,10 +356,15 @@ main() {
     if [[ "$print_mode" == true ]]; then
         local tmp_f
         tmp_f=$(mktemp)
-        generate_report "$tmp_f" >/dev/null
-        cat "$tmp_f"
-        rm -f "$tmp_f"
-        exit 0
+        if generate_report "$tmp_f"; then
+            cat "$tmp_f"
+            rm -f "$tmp_f" "${tmp_f}.sha256"
+            exit 0
+        else
+            rm -f "$tmp_f" "${tmp_f}.sha256"
+            echo -e "${RED}[!] Error: Failed to generate triage report.${NC}" >&2
+            exit 1
+        fi
     fi
 
     if [[ "$save_mode" == true ]]; then
@@ -365,14 +379,31 @@ main() {
         fi
 
         echo -e "${CYAN}[*] Generating forensic triage report to: ${out_path}...${NC}"
+        if ! generate_report "$out_path"; then
+            echo -e "${RED}[!] Error: Failed to save triage report to ${out_path}.${NC}" >&2
+            exit 1
+        fi
+
+        # Verify that both report and detached manifest exist
+        if [[ ! -f "$out_path" || ! -f "${out_path}.sha256" ]]; then
+            echo -e "${RED}[!] Error: Verification failed. Report or manifest file was not created.${NC}" >&2
+            exit 1
+        fi
+
+        # Verify cryptographic integrity of saved report
+        if ! (cd "$(dirname "$out_path")" && sha256sum -c "$(basename "$out_path").sha256" >/dev/null 2>&1); then
+            echo -e "${RED}[!] Error: Cryptographic self-check failed for saved report.${NC}" >&2
+            exit 1
+        fi
+
         local hash
-        hash=$(generate_report "$out_path")
+        hash=$(awk '{print $1}' "${out_path}.sha256")
         local fsize
         fsize=$(wc -c < "$out_path" 2>/dev/null || echo "0")
 
         echo -e "${GREEN}[✓] Report saved successfully.${NC}"
-        echo -e "    File:   $out_path"
-        echo -e "    Size:   $fsize bytes"
+        echo -e "    File:     $out_path"
+        echo -e "    Size:     $fsize bytes"
         echo -e "    SHA256:   $hash"
         echo -e "    Manifest: ${out_path}.sha256"
         exit 0
