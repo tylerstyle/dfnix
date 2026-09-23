@@ -50,11 +50,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790143392,
-        "narHash": "sha256-dPMsjiJrMJdtvVv80jOk/YSgH8PjmMH7gjR+g0HbUl4=",
+        "lastModified": 1790144031,
+        "narHash": "sha256-bI3mm5hUUuS599Jl/rNozeELNzlmFJega7ivvSo6av4=",
         "owner": "tylerstyle",
         "repo": "dfnet",
-        "rev": "c6be2e53182d2d62759de2c9eeec12c19f27836b",
+        "rev": "83b3a26b02a03d85286fe47c69c76593633944d4",
         "type": "github"
       },
       "original": {
