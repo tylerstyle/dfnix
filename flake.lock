@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790155212,
-        "narHash": "sha256-NQDDlgdb2+bvXqtlTjCfMVD1bbkjOBWGsTTVFkrh+VU=",
+        "lastModified": 1790155386,
+        "narHash": "sha256-/C5V+RHBw9qpQcTUuSVnUMKcBTX2bAdtJXlP2BuDIZU=",
         "owner": "tylerstyle",
         "repo": "dfdisk",
-        "rev": "6964b92b0c909a7b9e0e3fc18f9ad9fcae425d3c",
+        "rev": "d7db5b8d5d93211ab80364e0a251e6c38c68d1d8",
         "type": "github"
       },
       "original": {
