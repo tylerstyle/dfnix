@@ -33,14 +33,14 @@ EOF
   '';
 
   startXfce = pkgs.writeShellScriptBin "start-xfce" ''
-    rm -f /tmp/.dfnix-session-started
-
-    # If already running inside X11, do not attempt to start a second X server on the same display
-    if [ -n "$DISPLAY" ]; then
-      echo "[-] Error: X server is already active on $DISPLAY."
+    # If already running inside X11 or Wayland, do not attempt to start a second X server
+    if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+      echo "[-] Error: Graphical session is already active (DISPLAY=''${DISPLAY:-none}, WAYLAND_DISPLAY=''${WAYLAND_DISPLAY:-none})."
       echo "    You are already inside an active graphical desktop session."
       exit 1
     fi
+
+    rm -f /tmp/.dfnix-session-started
 
     # Set clean X11 / XFCE environment and neutralize Wayland variables in shell
     export XDG_CURRENT_DESKTOP="XFCE"
@@ -77,14 +77,20 @@ EOF
   '';
 
   startNiri = pkgs.writeShellScriptBin "start-niri" ''
-    rm -f /tmp/.dfnix-session-started
-
     # If running inside an existing X11/XFCE session, run Niri nested in a window
     if [ -n "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then
       echo ">>> Active X11 session detected ($DISPLAY)."
       echo ">>> Launching Niri in a nested Wayland window inside XFCE..."
       exec niri "$@"
     fi
+
+    if [ -n "$WAYLAND_DISPLAY" ]; then
+      echo "[-] Error: Wayland session is already active on $WAYLAND_DISPLAY."
+      echo "    You are already inside an active graphical desktop session."
+      exit 1
+    fi
+
+    rm -f /tmp/.dfnix-session-started
 
     USER_ID="$(id -u)"
     USER_NAME="$(id -un)"
@@ -167,6 +173,62 @@ EOF
     export XKB_DEFAULT_OPTIONS="grp:alt_shift_toggle"
 
     TARGET_DESKTOP="''${1:-${config.dfnix.desktop.displayManager.defaultDesktop}}"
+
+    # Session Chooser: Interactive selection at boot
+    if [ "$TARGET_DESKTOP" = "chooser" ] || [ "$TARGET_DESKTOP" = "--chooser" ]; then
+      if [ -n "$DISPLAY" ]; then
+        echo "[-] Running session chooser inside active display $DISPLAY..."
+        ${pkgs.dfnix-session-chooser}/bin/dfnix-session-chooser || true
+        exit 0
+      fi
+
+      while true; do
+        rm -f /tmp/.dfnix-chosen-session "/run/user/$USER_ID/dfnix-chosen-session" 2>/dev/null || true
+
+        # Run session chooser on temporary dedicated X11 server
+        ${pkgs.xinit}/bin/xinit ${pkgs.dfnix-session-chooser}/bin/dfnix-session-chooser -- :0 vt1 2>/dev/null || true
+
+        CHOSEN_SESSION=""
+        if [ -f "/run/user/$USER_ID/dfnix-chosen-session" ]; then
+          CHOSEN_SESSION=$(cat "/run/user/$USER_ID/dfnix-chosen-session" | tr -d '[:space:]')
+        elif [ -f "/tmp/.dfnix-chosen-session" ]; then
+          CHOSEN_SESSION=$(cat "/tmp/.dfnix-chosen-session" | tr -d '[:space:]')
+        fi
+
+        if [ "$CHOSEN_SESSION" = "xfce" ]; then
+          echo ">>> dfnix: Launching XFCE desktop session..."
+          ${startXfce}/bin/start-xfce || true
+          echo ">>> XFCE session ended. Returning to session chooser..."
+          sleep 1
+          continue
+        elif [ "$CHOSEN_SESSION" = "niri" ]; then
+          echo ">>> dfnix: Launching Niri Wayland session..."
+          set +e
+          ${startNiri}/bin/start-niri
+          NIRI_EXIT=$?
+          set -e
+          if [ $NIRI_EXIT -ne 0 ]; then
+            echo ""
+            echo ">>> WARNING: Niri Wayland session exited with code $NIRI_EXIT."
+            echo ">>> (If Niri failed to start, verify that 'Accelerate 3D graphics' is enabled in your VM settings)."
+            echo ">>> Returning to Session Chooser in 3 seconds..."
+            sleep 3
+          fi
+          continue
+        elif [ "$CHOSEN_SESSION" = "console" ]; then
+          echo ">>> Dropping to forensic console..."
+          clear
+          ${dfnixBanner}/bin/dfnix-help
+          exec bash --login
+        else
+          echo ">>> Session Chooser closed. Dropping to forensic console..."
+          clear
+          ${dfnixBanner}/bin/dfnix-help
+          exec bash --login
+        fi
+      done
+    fi
+
     if [ "$TARGET_DESKTOP" = "xfce" ] || [ "$TARGET_DESKTOP" = "--xfce" ]; then
       if [ -n "$DISPLAY" ]; then
         echo "[-] Error: X server is already active on $DISPLAY."
@@ -234,7 +296,7 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Enable Direct TTY1 session with Niri Wayland and XFCE fallback.";
+      description = "Enable Direct TTY1 session with Niri Wayland, XFCE, and Session Chooser.";
     };
     autologin = mkOption {
       type = types.bool;
@@ -247,9 +309,9 @@ in
       description = "User account to automatically log in on TTY1.";
     };
     defaultDesktop = mkOption {
-      type = types.enum [ "niri" "xfce" ];
+      type = types.enum [ "niri" "xfce" "chooser" ];
       default = "niri";
-      description = "Default desktop environment to launch ('niri' with auto-fallback to XFCE, or 'xfce' directly).";
+      description = "Default desktop environment to launch ('niri', 'xfce', or 'chooser' for interactive login selection).";
     };
   };
 
@@ -276,6 +338,7 @@ in
       dfnixBanner
       startXfce
       startNiri
+      pkgs.dfnix-session-chooser
     ];
 
     # 4. Auto-launch Niri on TTY1 login

@@ -33,6 +33,7 @@ in
            else pkgs.callPackage ./pkgs/dfinfo { };
 
   dfnix-guide = pkgs.callPackage ./pkgs/dfnix-guide { };
+  dfnix-session-chooser = pkgs.callPackage ./pkgs/dfnix-session-chooser { };
 
   dwarf2json = pkgs.callPackage ./pkgs/dwarf2json { };
   regripper = pkgs.callPackage ./pkgs/regripper { };
