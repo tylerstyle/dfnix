@@ -41,6 +41,9 @@
         # Forensic Quick Start & Navigation Guide
         dfnix-guide = final.callPackage ./pkgs/dfnix-guide { };
 
+        # Forensic Graphical Desktop Session Chooser
+        dfnix-session-chooser = final.callPackage ./pkgs/dfnix-session-chooser { };
+
         # Volatility 3 ISF generator
         dwarf2json = final.callPackage ./pkgs/dwarf2json { };
 
@@ -150,7 +153,7 @@
           };
         in
         {
-          inherit (pkgs) dfdisk dfmount dfnet dfinfo dfnix-guide dwarf2json regripper;
+          inherit (pkgs) dfdisk dfmount dfnet dfinfo dfnix-guide dwarf2json regripper dfnix-session-chooser;
           
           # Shortcut: nix build .#iso
           iso = self.nixosConfigurations.df-forensics-iso.config.system.build.isoImage;
@@ -230,9 +233,9 @@
             commonGuiModule
 
             ({ pkgs, lib, ... }: {
-              # VM appliances default to XFCE for guaranteed software rendering compatibility
+              # VM appliances present graphical chooser at boot to select Niri or XFCE
               dfnix.desktop.displayManager.enable = true;
-              dfnix.desktop.displayManager.defaultDesktop = "xfce";
+              dfnix.desktop.displayManager.defaultDesktop = "chooser";
               dfnix.desktop.displayManager.autologin = true;
               dfnix.desktop.displayManager.autologinUser = "nixos";
 
@@ -292,9 +295,9 @@
             commonGuiModule
 
             ({ pkgs, lib, ... }: {
-              # VM appliances default to XFCE for guaranteed software rendering compatibility
+              # VM appliances present graphical chooser at boot to select Niri or XFCE
               dfnix.desktop.displayManager.enable = true;
-              dfnix.desktop.displayManager.defaultDesktop = "xfce";
+              dfnix.desktop.displayManager.defaultDesktop = "chooser";
               dfnix.desktop.displayManager.autologin = true;
               dfnix.desktop.displayManager.autologinUser = "nixos";
 

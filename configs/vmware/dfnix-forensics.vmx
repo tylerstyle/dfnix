@@ -1,0 +1,69 @@
+.encoding = "UTF-8"
+config.version = "8"
+virtualHW.version = "19"
+vmci0.present = "TRUE"
+displayName = "dfnix Forensic OS"
+guestOS = "other5xlinux-64"
+
+# ------------------------------------------------------------------------------
+# Firmware: UEFI is required for dfnix EFI partition table
+# ------------------------------------------------------------------------------
+firmware = "efi"
+uefi.secureBoot.enabled = "FALSE"
+
+# ------------------------------------------------------------------------------
+# CPU & Memory Allocation
+# ------------------------------------------------------------------------------
+numvcpus = "4"
+cpuid.coresPerSocket = "4"
+memsize = "8192"
+
+# ------------------------------------------------------------------------------
+# 3D Hardware Acceleration (Required for fluid Niri Wayland session)
+# ------------------------------------------------------------------------------
+mks.enable3d = "TRUE"
+svga.graphicsMemoryKB = "1048576"
+svga.vramSize = "268435456"
+
+# ------------------------------------------------------------------------------
+# Storage Controller & Primary Virtual Disk
+# ------------------------------------------------------------------------------
+scsi0.present = "TRUE"
+scsi0.virtualDev = "lsilogic"
+scsi0:0.present = "TRUE"
+scsi0:0.fileName = "dfnix-forensics.vmdk"
+scsi0:0.deviceType = "scsi-hardDisk"
+
+# ------------------------------------------------------------------------------
+# Network (Forensic NAT adapter)
+# ------------------------------------------------------------------------------
+ethernet0.present = "TRUE"
+ethernet0.connectionType = "nat"
+ethernet0.virtualDev = "e1000e"
+ethernet0.wakeOnPcktRcv = "FALSE"
+ethernet0.addressType = "generated"
+
+# ------------------------------------------------------------------------------
+# USB Controllers (USB 3.1 support for forensic dongles and write blockers)
+# ------------------------------------------------------------------------------
+usb.present = "TRUE"
+ehci.present = "TRUE"
+usb_xhci.present = "TRUE"
+
+# ------------------------------------------------------------------------------
+# Audio & Display Interactivity
+# ------------------------------------------------------------------------------
+sound.present = "TRUE"
+sound.virtualDev = "hdaudio"
+sound.fileName = "-1"
+sound.autodetect = "TRUE"
+
+# ------------------------------------------------------------------------------
+# Forensic Integrity: Prohibit host clock synchronization altering evidence
+# ------------------------------------------------------------------------------
+tools.syncTime = "FALSE"
+tools.upgrade.policy = "manual"
+powerType.powerOff = "soft"
+powerType.powerOn = "soft"
+powerType.suspend = "soft"
+powerType.reset = "soft"

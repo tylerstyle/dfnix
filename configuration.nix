@@ -20,6 +20,7 @@ let
              else final.callPackage ./pkgs/dfinfo { };
 
     dfnix-guide = final.callPackage ./pkgs/dfnix-guide { };
+    dfnix-session-chooser = final.callPackage ./pkgs/dfnix-session-chooser { };
 
     dwarf2json = final.callPackage ./pkgs/dwarf2json { };
     regripper = final.callPackage ./pkgs/regripper { };
