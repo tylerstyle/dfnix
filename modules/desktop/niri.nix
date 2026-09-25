@@ -16,23 +16,15 @@ with lib;
     programs.niri.enable = true;
     programs.dconf.enable = true;
 
-    # 2. Wayland session environment variables
-    environment.sessionVariables = {
-      NIXOS_OZONE_WL = "1";
-      QT_QPA_PLATFORM = "wayland;xcb";
-      QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
-      MOZ_ENABLE_WAYLAND = "1";
-      XDG_CURRENT_DESKTOP = "Niri";
-      XKB_DEFAULT_LAYOUT = "de,us";
-      XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
-    };
-
-    # Explicitly ensure systemd user service for Niri
+    # Explicitly configure systemd user service for Niri
     systemd.user.services.niri = {
       environment = {
         XDG_CURRENT_DESKTOP = "Niri";
+        XDG_SESSION_DESKTOP = "niri";
+        XDG_SESSION_TYPE = "wayland";
         NIXOS_OZONE_WL = "1";
         QT_QPA_PLATFORM = "wayland;xcb";
+        QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
         MOZ_ENABLE_WAYLAND = "1";
         XKB_DEFAULT_LAYOUT = "de,us";
         XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
@@ -41,10 +33,6 @@ with lib;
         TimeoutStartSec = "10s";
       };
     };
-
-    # Completely disable GNOME Keyring to prevent "Choose password for new keyring" dialogs on live ISO
-    services.gnome.gnome-keyring.enable = mkForce false;
-    security.pam.services.login.enableGnomeKeyring = false;
 
     # 3. System packages required for Niri + Noctalia desktop
     environment.systemPackages = with pkgs; [

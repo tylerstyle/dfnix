@@ -2,7 +2,7 @@
 # Makefile for dfnix (Flakeless NixOS Live ISO Build System)
 # ==============================================================================
 
-.PHONY: help iso vm check test-qemu test-vm test-headless flash clean
+.PHONY: help iso vm vmware virtualbox check test-qemu test-vm test-headless flash clean
 
 help:
 	@echo "dfnix Build System (Flakeless NixOS)"
@@ -10,6 +10,8 @@ help:
 	@echo "Build Targets:"
 	@echo "  make iso            Build the live bootable forensic ISO (./result-iso)"
 	@echo "  make vm             Build instant prototyping VM closure (./result-vm, fast: no squashfs)"
+	@echo "  make vmware         Build VMware appliance (.vmdk, ./result-vmware)"
+	@echo "  make virtualbox     Build VirtualBox appliance (.ova, ./result-vbox)"
 	@echo "  make check          Verify Nix syntax and evaluate system closure"
 	@echo ""
 	@echo "Virtualization & Testing Targets:"
@@ -29,6 +31,14 @@ iso:
 vm:
 	@echo "==> Building dfnix rapid prototyping VM (skipping squashfs)..."
 	nix-build -A vm -o result-vm
+
+vmware:
+	@echo "==> Building dfnix VMware appliance (.vmdk)..."
+	nix build .#vmware -o result-vmware
+
+virtualbox:
+	@echo "==> Building dfnix VirtualBox appliance (.ova)..."
+	nix build .#virtualbox -o result-vbox
 
 flash:
 ifndef DEV

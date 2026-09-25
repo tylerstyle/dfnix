@@ -3,6 +3,8 @@
 with lib;
 
 let
+  cfg = config.dfnix.writeBlocking;
+
   writeBlockUdevPackage = pkgs.writeTextFile {
     name = "10-dfnix-write-blocking.rules";
     destination = "/etc/udev/rules.d/10-dfnix-write-blocking.rules";
@@ -17,6 +19,11 @@ let
 
       # 2. Inhibit automatic MDADM RAID array assembly on hotplug or coldplug
       SUBSYSTEM=="block", ACTION=="add", ENV{ID_FS_TYPE}=="linux_raid_member", ENV{SYSTEMD_READY}="0"
+${optionalString cfg.readOnlyAll ''
+
+      # Exempt explicitly designated system storage devices from read-only enforcement
+      # (e.g. appliance root virtual disk sda* while keeping attached evidence drives blocked)
+${concatMapStringsSep "\n" (dev: "      KERNEL==\"${dev}\", GOTO=\"dfnix_ro_end\"") cfg.exemptDevices}
 
       # 3. Force Read-Only at the kernel block level for physical attached storage
       # Restrict to physical and hypervisor block devices (SATA/SCSI/USB, NVMe, MMC/SD, VirtIO, Xen).
@@ -35,6 +42,9 @@ let
         ATTR{ro}="1", \
         RUN+="${pkgs.util-linux}/bin/blockdev --setro $env{DEVNAME}"
 
+      LABEL="dfnix_ro_end"
+''}
+
       # 5. Prevent udisks2 and desktop volume managers from automounting or probing
       ACTION=="add|change", SUBSYSTEM=="block", \
         ENV{UDISKS_IGNORE}="1", \
@@ -48,11 +58,21 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Enforce strict forensic software write-blocking on all attached block devices.";
+      description = "Enforce forensic storage invariants (swap neutralization, RAID/LVM lockdown, GPT auto-discovery disable).";
+    };
+    readOnlyAll = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enforce kernel block-level read-only mode (blockdev --setro) on physical block devices.";
+    };
+    exemptDevices = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      description = "List of kernel device patterns (e.g. ['sda*', 'nvme0n1*']) explicitly exempt from read-only enforcement (for appliance OS drives or workstation installations).";
     };
   };
 
-  config = mkIf config.dfnix.writeBlocking.enable {
+  config = mkIf cfg.enable {
     # --------------------------------------------------------------------------
     # Layer 1: Kernel Commandline & Systemd Boot Flags
     # --------------------------------------------------------------------------
@@ -68,7 +88,7 @@ in
     systemd.targets.swap.enable = false;
 
     # --------------------------------------------------------------------------
-    # Layer 2: Udev Rules for Immediate Read-Only Enforcement (Initrd & Stage-2)
+    # Layer 2: Udev Rules for Immediate Protection (Initrd & Stage-2)
     # --------------------------------------------------------------------------
     # Install priority-10 write-blocking udev rules in both stage 1 (initrd) and stage 2
     services.udev.packages = [ writeBlockUdevPackage ];

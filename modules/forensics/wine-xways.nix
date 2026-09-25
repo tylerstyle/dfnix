@@ -113,6 +113,19 @@ let
     mount --bind "${patchedWineHid64}" "${pkgs.wineWow64Packages.stable}/lib/wine/x86_64-windows/hid.dll"
     mount --bind "${patchedWineHid32}" "${pkgs.wineWow64Packages.stable}/lib/wine/i386-windows/hid.dll"
 
+    # Capture invoking examiner user and real home directory before resetting HOME for Wine root execution
+    CALLING_USER="''${SUDO_USER:-$USER}"
+    REAL_HOME="$(getent passwd "$CALLING_USER" 2>/dev/null | cut -d: -f6 || true)"
+    if [[ -z "$REAL_HOME" || "$REAL_HOME" == "/root" ]]; then
+      if [[ -d "/home/$CALLING_USER" && "$CALLING_USER" != "root" ]]; then
+        REAL_HOME="/home/$CALLING_USER"
+      elif [[ -d "/home/nixos" ]]; then
+        REAL_HOME="/home/nixos"
+      else
+        REAL_HOME="/root"
+      fi
+    fi
+
     # 1. Recover/Normalize Graphical Session Environment for Root
     export HOME="/root"
     export WINEPREFIX="/root/.wine"
@@ -138,8 +151,8 @@ let
       export DISPLAY=":0"
     fi
 
-    if [[ -z "''${XAUTHORITY:-}" && -f "''${HOME:-/home/nixos}/.Xauthority" ]]; then
-      export XAUTHORITY="''${HOME:-/home/nixos}/.Xauthority"
+    if [[ -z "''${XAUTHORITY:-}" && -f "$REAL_HOME/.Xauthority" ]]; then
+      export XAUTHORITY="$REAL_HOME/.Xauthority"
     fi
 
     # Authorize root on X11 if display is active
@@ -220,9 +233,9 @@ let
       SEARCH_PATHS=(
         "/opt/xways"
         "/etc/xways"
-        "''${HOME:-/home/nixos}/xways"
-        "''${HOME:-/home/nixos}/Desktop/xways"
-        "''${HOME:-/home/nixos}/Desktop"
+        "''${REAL_HOME}/xways"
+        "''${REAL_HOME}/Desktop/xways"
+        "''${REAL_HOME}/Desktop"
         "/root/xways"
         "/root/Desktop/xways"
         "/media/target/xways"
@@ -479,8 +492,5 @@ in
       SUBSYSTEM=="usb", ATTRS{idVendor}=="064f", MODE="0666", GROUP="users"
       ENV{ID_VENDOR_ID}=="064f", MODE="0666", GROUP="users"
     '';
-
-    # 3. Ensure live user has raw disk access privileges
-    users.users.nixos.extraGroups = [ "disk" ];
   };
 }
