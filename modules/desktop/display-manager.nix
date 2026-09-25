@@ -33,6 +33,38 @@ EOF
 
   startXfce = pkgs.writeShellScriptBin "start-xfce" ''
     rm -f /tmp/.dfnix-session-started
+
+    # Set clean X11 / XFCE environment and neutralize Wayland variables in shell
+    export XDG_CURRENT_DESKTOP="XFCE"
+    export XDG_SESSION_DESKTOP="xfce"
+    export XDG_SESSION_TYPE="x11"
+    export QT_QPA_PLATFORM="xcb"
+    export GDK_BACKEND="x11"
+    unset NIXOS_OZONE_WL
+    unset MOZ_ENABLE_WAYLAND
+    unset WAYLAND_DISPLAY
+    unset NIRI_SOCKET
+
+    # D-Bus daemon cannot delete variables once set, so explicitly overwrite stale Wayland settings with empty/disabled values
+    if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+      dbus-update-activation-environment --systemd \
+        XDG_CURRENT_DESKTOP="XFCE" \
+        XDG_SESSION_DESKTOP="xfce" \
+        XDG_SESSION_TYPE="x11" \
+        QT_QPA_PLATFORM="xcb" \
+        GDK_BACKEND="x11" \
+        NIXOS_OZONE_WL="" \
+        MOZ_ENABLE_WAYLAND="0" \
+        WAYLAND_DISPLAY="" \
+        NIRI_SOCKET="" 2>/dev/null || true
+    fi
+
+    # Reset systemd user environment (systemd supports unsetting variables cleanly)
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl --user unset-environment NIXOS_OZONE_WL MOZ_ENABLE_WAYLAND WAYLAND_DISPLAY NIRI_SOCKET 2>/dev/null || true
+      systemctl --user set-environment XDG_CURRENT_DESKTOP="XFCE" XDG_SESSION_DESKTOP="xfce" XDG_SESSION_TYPE="x11" QT_QPA_PLATFORM="xcb" GDK_BACKEND="x11" 2>/dev/null || true
+    fi
+
     exec ${pkgs.xfce4-session}/bin/startxfce4 "$@"
   '';
 
@@ -56,7 +88,9 @@ EOF
       sleep 0.1
     done
 
-    HOME_DIR="''${HOME:-/home/nixos}"
+    USER_ID="$(id -u)"
+    USER_NAME="$(id -un)"
+    HOME_DIR="''${HOME:-$(getent passwd "$USER_ID" 2>/dev/null | cut -d: -f6 || echo /home/$USER_NAME)}"
     mkdir -p "$HOME_DIR/.config/niri" \
              "$HOME_DIR/.config/noctalia" \
              "$HOME_DIR/.config/kitty" \
@@ -94,15 +128,23 @@ EOF
       cp -rn /etc/xdg/dfnix/wallpapers/* "$HOME_DIR/Pictures/Wallpapers/" 2>/dev/null || true
     fi
 
-    export NIRI_CONFIG="$HOME_DIR/.config/niri/config.kdl"
-    export XDG_CURRENT_DESKTOP="Niri"
-    export NIXOS_OZONE_WL="1"
-    export QT_QPA_PLATFORM="wayland;xcb"
-    export MOZ_ENABLE_WAYLAND="1"
     export XKB_DEFAULT_LAYOUT="de,us"
     export XKB_DEFAULT_OPTIONS="grp:alt_shift_toggle"
 
+    DEFAULT_DESKTOP="${config.dfnix.desktop.displayManager.defaultDesktop}"
+    if [ "$DEFAULT_DESKTOP" = "xfce" ]; then
+      echo ">>> dfnix: Launching XFCE desktop session..."
+      exec ${startXfce}/bin/start-xfce
+    fi
+
     echo ">>> dfnix: Starting Niri Wayland session..."
+    export NIRI_CONFIG="$HOME_DIR/.config/niri/config.kdl"
+    export XDG_CURRENT_DESKTOP="Niri"
+    export XDG_SESSION_DESKTOP="niri"
+    export XDG_SESSION_TYPE="wayland"
+    export NIXOS_OZONE_WL="1"
+    export QT_QPA_PLATFORM="wayland;xcb"
+    export MOZ_ENABLE_WAYLAND="1"
     set +e
     # Use -l flag to prevent upstream niri-session from re-spawning a login shell loop
     niri-session -l
@@ -159,20 +201,29 @@ in
       default = "nixos";
       description = "User account to automatically log in on TTY1.";
     };
+    defaultDesktop = mkOption {
+      type = types.enum [ "niri" "xfce" ];
+      default = "niri";
+      description = "Default desktop environment to launch ('niri' with auto-fallback to XFCE, or 'xfce' directly).";
+    };
   };
 
   config = mkIf config.dfnix.desktop.displayManager.enable {
     # 1. Direct TTY1 autologin when enabled
     services.getty.autologinUser = mkIf config.dfnix.desktop.displayManager.autologin config.dfnix.desktop.displayManager.autologinUser;
 
-    # Explicitly ensure ALL display managers (SDDM, LightDM, GDM) are completely disabled
-    services.xserver.displayManager.lightdm.enable = mkForce false;
-    services.displayManager.sddm.enable = mkForce false;
-    services.displayManager.gdm.enable = mkForce false;
+    # Enable X server and startx support so startxfce4 receives NixOS X server arguments and /etc/X11/xinit/xserverrc
+    services.xserver.enable = true;
+    services.xserver.displayManager.startx.enable = true;
 
-    # Completely disable GNOME Keyring to eliminate "Choose password for new keyring" prompts
-    services.gnome.gnome-keyring.enable = mkForce false;
-    security.pam.services.login.enableGnomeKeyring = false;
+    # Explicitly ensure display managers (SDDM, LightDM, GDM) are disabled when direct TTY1 autologin is requested
+    services.xserver.displayManager.lightdm.enable = mkIf config.dfnix.desktop.displayManager.autologin (mkForce false);
+    services.displayManager.sddm.enable = mkIf config.dfnix.desktop.displayManager.autologin (mkForce false);
+    services.displayManager.gdm.enable = mkIf config.dfnix.desktop.displayManager.autologin (mkForce false);
+
+    # Completely disable GNOME Keyring on direct autologin live sessions to eliminate popups
+    services.gnome.gnome-keyring.enable = mkIf config.dfnix.desktop.displayManager.autologin (mkForce false);
+    security.pam.services.login.enableGnomeKeyring = mkIf config.dfnix.desktop.displayManager.autologin false;
 
     # 3. Session and helper scripts
     environment.systemPackages = [

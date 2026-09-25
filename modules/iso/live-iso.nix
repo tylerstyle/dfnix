@@ -25,7 +25,7 @@
   # ----------------------------------------------------------------------------
   boot.loader.grub.memtest86.enable = true;
 
-  # Ensure all common storage & USB controllers are available in stage-1 initrd
+  # Ensure all common storage, USB & hypervisor controllers are available in stage-1 initrd
   boot.initrd.availableKernelModules = [
     "xhci_pci"
     "ehci_pci"
@@ -40,7 +40,44 @@
     "sg"
     "rtsx_pci_sdmmc"
     "rtsx_usb_sdmmc"
+    # Virtual machine disk & bus controllers (VMware, VirtualBox, QEMU/KVM)
+    "vmw_pvscsi"
+    "mptspi"
+    "mptsas"
+    "virtio_blk"
+    "virtio_pci"
+    "virtio_scsi"
+    "ata_piix"
   ];
+
+  # ----------------------------------------------------------------------------
+  # Hypervisor Guest Integrations (VMware, VirtualBox, QEMU/KVM)
+  # ----------------------------------------------------------------------------
+  # VMware Workstation / Fusion / ESXi (open-vm-tools dynamically activates on VMware)
+  virtualisation.vmware.guest.enable = true;
+
+  # VirtualBox Guest Additions (dynamically activates on VirtualBox)
+  virtualisation.virtualbox.guest = {
+    enable = true;
+    clipboard = false;
+    dragAndDrop = false;
+    seamless = false;
+    vboxsf = false;
+  };
+  # Decouple from unconditional boot transaction so bare metal / VMware does not wait on missing dev-vboxguest.device
+  systemd.services.virtualbox = {
+    wantedBy = lib.mkForce [ ];
+    requires = lib.mkForce [ ];
+    wants = lib.mkForce [ ];
+    after = lib.mkForce [ ];
+  };
+  services.udev.extraRules = ''
+    KERNEL=="vboxguest", TAG+="systemd", ENV{SYSTEMD_WANTS}="virtualbox.service"
+  '';
+
+  # QEMU / KVM Guest Agent & SPICE channel
+  services.qemuGuest.enable = true;
+  services.spice-vdagentd.enable = true;
 
   boot.kernelParams = [
     # Boot entirely into RAM (eliminates CD-ROM loopback LBA readahead errors on Zalman / virtual ODDs)
