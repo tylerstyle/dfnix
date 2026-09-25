@@ -12,8 +12,9 @@ let
    Graphical session ended or dropped to console.
 
    [DESKTOP ENVIRONMENTS]
-     startxfce4      Launch XFCE desktop (X11 — universal legacy GPU fallback)
-     dfnix-session   Restart Niri Wayland compositor with Noctalia shell
+     start-xfce      Launch XFCE desktop (X11 — universal legacy GPU / VM fallback)
+     start-niri      Launch Niri Wayland session (or nested window inside XFCE)
+     dfnix-session   Start default desktop session (supports: dfnix-session niri | xfce)
 
    [FORENSIC TUIs (Direct CLI)]
      sudo dfdisk     Forensic Disk Imaging & ddrescue TUI (RAW, E01, verification)
@@ -33,6 +34,13 @@ EOF
 
   startXfce = pkgs.writeShellScriptBin "start-xfce" ''
     rm -f /tmp/.dfnix-session-started
+
+    # If already running inside X11, do not attempt to start a second X server on the same display
+    if [ -n "$DISPLAY" ]; then
+      echo "[-] Error: X server is already active on $DISPLAY."
+      echo "    You are already inside an active graphical desktop session."
+      exit 1
+    fi
 
     # Set clean X11 / XFCE environment and neutralize Wayland variables in shell
     export XDG_CURRENT_DESKTOP="XFCE"
@@ -66,6 +74,33 @@ EOF
     fi
 
     exec ${pkgs.xfce4-session}/bin/startxfce4 "$@"
+  '';
+
+  startNiri = pkgs.writeShellScriptBin "start-niri" ''
+    rm -f /tmp/.dfnix-session-started
+
+    # If running inside an existing X11/XFCE session, run Niri nested in a window
+    if [ -n "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then
+      echo ">>> Active X11 session detected ($DISPLAY)."
+      echo ">>> Launching Niri in a nested Wayland window inside XFCE..."
+      exec niri "$@"
+    fi
+
+    USER_ID="$(id -u)"
+    USER_NAME="$(id -un)"
+    HOME_DIR="''${HOME:-$(getent passwd "$USER_ID" 2>/dev/null | cut -d: -f6 || echo /home/$USER_NAME)}"
+
+    export NIRI_CONFIG="$HOME_DIR/.config/niri/config.kdl"
+    export XDG_CURRENT_DESKTOP="Niri"
+    export XDG_SESSION_DESKTOP="niri"
+    export XDG_SESSION_TYPE="wayland"
+    export NIXOS_OZONE_WL="1"
+    export QT_QPA_PLATFORM="wayland;xcb"
+    export MOZ_ENABLE_WAYLAND="1"
+    export XKB_DEFAULT_LAYOUT="de,us"
+    export XKB_DEFAULT_OPTIONS="grp:alt_shift_toggle"
+
+    exec niri-session -l "$@"
   '';
 
   dfnixSession = pkgs.writeShellScriptBin "dfnix-session" ''
@@ -131,10 +166,20 @@ EOF
     export XKB_DEFAULT_LAYOUT="de,us"
     export XKB_DEFAULT_OPTIONS="grp:alt_shift_toggle"
 
-    DEFAULT_DESKTOP="${config.dfnix.desktop.displayManager.defaultDesktop}"
-    if [ "$DEFAULT_DESKTOP" = "xfce" ]; then
+    TARGET_DESKTOP="''${1:-${config.dfnix.desktop.displayManager.defaultDesktop}}"
+    if [ "$TARGET_DESKTOP" = "xfce" ] || [ "$TARGET_DESKTOP" = "--xfce" ]; then
+      if [ -n "$DISPLAY" ]; then
+        echo "[-] Error: X server is already active on $DISPLAY."
+        echo "    You are already inside an active XFCE session."
+        echo "    To launch Niri inside XFCE, run: start-niri (or niri)"
+        exit 1
+      fi
       echo ">>> dfnix: Launching XFCE desktop session..."
       exec ${startXfce}/bin/start-xfce
+    fi
+
+    if [ "$TARGET_DESKTOP" = "niri" ] || [ "$TARGET_DESKTOP" = "--niri" ]; then
+      exec ${startNiri}/bin/start-niri
     fi
 
     echo ">>> dfnix: Starting Niri Wayland session..."
@@ -230,6 +275,7 @@ in
       dfnixSession
       dfnixBanner
       startXfce
+      startNiri
     ];
 
     # 4. Auto-launch Niri on TTY1 login
