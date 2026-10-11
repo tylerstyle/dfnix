@@ -3,7 +3,13 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    
+
+    # Lets default.nix evaluate this flake for flakeless (nix-build) users
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
+
     # Forensic Disk Imager by Tylerstyle
     dfdisk = {
       url = "github:tylerstyle/dfdisk";
