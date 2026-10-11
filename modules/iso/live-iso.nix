@@ -188,7 +188,13 @@
   # Air-gap network settings (no lingering wait-online timeouts)
   networking.hostName = "df-forensics";
   networking.networkmanager.enable = true;
+  # Randomize MACs from the first connection attempt so the hardware MAC never reaches the network
+  networking.networkmanager.wifi.macAddress = "random";
+  networking.networkmanager.ethernet.macAddress = "random";
   systemd.services.NetworkManager-wait-online.enable = false;
+
+  # No NTP: a sync puts the kernel in 11-minute mode, which writes system time to the suspect's RTC
+  services.timesyncd.enable = false;
 
   # Timezone & Localization
   time.timeZone = "Europe/Berlin";

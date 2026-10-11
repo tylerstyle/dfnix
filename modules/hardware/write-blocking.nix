@@ -21,8 +21,13 @@ let
       SUBSYSTEM=="block", ACTION=="add", ENV{ID_FS_TYPE}=="linux_raid_member", ENV{SYSTEMD_READY}="0"
 ${optionalString cfg.readOnlyAll ''
 
-      # Exempt explicitly designated system storage devices from read-only enforcement
-      # (e.g. appliance root virtual disk sda* while keeping attached evidence drives blocked)
+      # Exempt explicitly designated system storage devices from read-only enforcement.
+      # Appliances should use exemptIdPaths: ID_PATH pins the controller/bus slot, whereas
+      # kernel names (sda) follow probe order and can land on an attached evidence drive.
+${optionalString (cfg.exemptIdPaths != [ ]) (
+  "      # ID_PATH is normally set by 60-persistent-storage.rules, which runs after this file\n" +
+  "      SUBSYSTEM==\"block\", ENV{ID_PATH}==\"\", IMPORT{builtin}=\"path_id\"\n"
+)}${concatMapStringsSep "\n" (path: "      SUBSYSTEM==\"block\", ENV{ID_PATH}==\"${path}\", GOTO=\"dfnix_ro_end\"") cfg.exemptIdPaths}
 ${concatMapStringsSep "\n" (dev: "      KERNEL==\"${dev}\", GOTO=\"dfnix_ro_end\"") cfg.exemptDevices}
 
       # 3. Force Read-Only at the kernel block level for physical attached storage
@@ -68,7 +73,13 @@ in
     exemptDevices = mkOption {
       type = types.listOf types.str;
       default = [ ];
-      description = "List of kernel device patterns (e.g. ['sda*', 'nvme0n1*']) explicitly exempt from read-only enforcement (for appliance OS drives or workstation installations).";
+      description = "List of kernel device patterns (e.g. ['sda*', 'nvme0n1*']) explicitly exempt from read-only enforcement. Kernel names depend on probe order, so an evidence drive can take over an exempted name; prefer exemptIdPaths.";
+    };
+    exemptIdPaths = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [ "pci-0000:00:10.0-scsi-0:0:0:0" ];
+      description = "List of udev ID_PATH patterns (controller/bus slot, see /dev/disk/by-path) whose disks and partitions are exempt from read-only enforcement (for appliance OS drives).";
     };
   };
 
@@ -81,6 +92,9 @@ in
       # Prevents auto-mounting of /home, /srv, and crucially SWAP partitions on GPT disks
       "systemd.gpt_auto=0"
       "systemd.swap=0"
+      # Never resume from (and thereby rewrite) a hibernation image on an attached evidence disk
+      "noresume"
+      "nohibernate"
     ];
 
     # Completely mask swap target to guarantee evidence disks with swap partitions
@@ -121,14 +135,13 @@ in
       }
     '';
 
-    # Polkit rules to prevent unauthorized or automatic userspace mounts
+    # Polkit rules to prevent udisks2 mounts and unlocks for every user (wheel included:
+    # the live examiner account is in wheel). Forensic mounts go through dfmount as root.
     security.polkit.extraConfig = ''
       polkit.addRule(function(action, subject) {
         if (action.id.indexOf("org.freedesktop.udisks2.filesystem-mount") == 0 ||
             action.id.indexOf("org.freedesktop.udisks2.encrypted-unlock") == 0) {
-          if (!subject.isInGroup("wheel")) {
-            return polkit.Result.NO;
-          }
+          return polkit.Result.NO;
         }
       });
     '';

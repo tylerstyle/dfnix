@@ -203,7 +203,7 @@
                 virtualisation.memorySize = 8192; # 8 GiB RAM
                 virtualisation.cores = 4;         # 4 CPU cores
                 virtualisation.efi.OVMF = pkgs.OVMF // { systemManagementModeRequired = false; };
-                boot.kernelParams = nixpkgs.lib.mkVMOverride [ "panic=10" ]; # Skip copytoram in VM closure
+                boot.kernelParams = nixpkgs.lib.mkVMOverride [ "panic=10" "noresume" "nohibernate" ]; # Skip copytoram in VM closure
                 boot.initrd.systemd.services.copytoram.enable = false;
               };
             })
@@ -239,10 +239,11 @@
               dfnix.desktop.displayManager.autologin = true;
               dfnix.desktop.displayManager.autologinUser = "nixos";
 
-              # Enforce write-blocking by default on attached evidence drives, exempting only appliance OS disk (sda and partitions)
+              # Enforce write-blocking by default on attached evidence drives, exempting only the appliance
+              # OS disk by its slot in configs/vmware/dfnix-forensics.vmx (scsi0:0, LSI Logic at PCI 00:10.0)
               dfnix.writeBlocking.enable = true;
               dfnix.writeBlocking.readOnlyAll = true;
-              dfnix.writeBlocking.exemptDevices = [ "sda" "sda[0-9]*" ];
+              dfnix.writeBlocking.exemptIdPaths = [ "pci-0000:00:10.0-scsi-0:0:0:0" ];
 
               # Sizable VMDK capacity for forensic analysis & triage staging
               virtualisation.diskSize = 30720; # 30 GiB (sparse VMDK)
@@ -260,7 +261,12 @@
               # Air-gap network defaults with NetworkManager
               networking.hostName = "df-vmware";
               networking.networkmanager.enable = true;
+              networking.networkmanager.wifi.macAddress = "random";
+              networking.networkmanager.ethernet.macAddress = "random";
               systemd.services.NetworkManager-wait-online.enable = false;
+
+              # No NTP: a sync puts the kernel in 11-minute mode, which writes system time to the RTC
+              services.timesyncd.enable = false;
 
               # Timezone & Localization
               time.timeZone = "Europe/Berlin";
@@ -301,10 +307,11 @@
               dfnix.desktop.displayManager.autologin = true;
               dfnix.desktop.displayManager.autologinUser = "nixos";
 
-              # Enforce write-blocking by default on attached evidence drives, exempting only appliance OS disk (sda and partitions)
+              # Enforce write-blocking by default on attached evidence drives, exempting only the appliance
+              # OS disk by its slot: SATA port 0 of the OVA's AHCI controller (PCI 00:0d.0)
               dfnix.writeBlocking.enable = true;
               dfnix.writeBlocking.readOnlyAll = true;
-              dfnix.writeBlocking.exemptDevices = [ "sda" "sda[0-9]*" ];
+              dfnix.writeBlocking.exemptIdPaths = [ "pci-0000:00:0d.0-ata-1.0" "pci-0000:00:0d.0-ata-1" ];
 
               # Forensic safety: Inhibit swap file on disk
               swapDevices = lib.mkForce [ ];
@@ -335,7 +342,12 @@
               # Air-gap network defaults with NetworkManager
               networking.hostName = "df-vbox";
               networking.networkmanager.enable = true;
+              networking.networkmanager.wifi.macAddress = "random";
+              networking.networkmanager.ethernet.macAddress = "random";
               systemd.services.NetworkManager-wait-online.enable = false;
+
+              # No NTP: a sync puts the kernel in 11-minute mode, which writes system time to the RTC
+              services.timesyncd.enable = false;
 
               # Timezone & Localization
               time.timeZone = "Europe/Berlin";
