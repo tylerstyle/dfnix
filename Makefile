@@ -20,21 +20,18 @@ help:
 	@echo "  make test-headless  Force headless QEMU with SPICE (5930), VNC (5901), & SSH (2222)"
 	@echo "  make test-cftt      Write-blocking regression test (KVM)"
 	@echo ""
-	@echo "  LOCAL_TOOLS=1 (default) builds against the committed HEAD of ../dfcore, ../dfdisk,"
-	@echo "  ../dfmount and ../dfnet; LOCAL_TOOLS=0 uses the inputs pinned in flake.lock."
+	@echo "  Builds use the inputs pinned in flake.lock. LOCAL_TOOLS=1 builds against the committed"
+	@echo "  HEAD of ../dfcore, ../dfdisk, ../dfmount and ../dfnet instead (tool development)."
 	@echo ""
 	@echo "Deployment & Utilities:"
 	@echo "  make flash DEV=/dev/sdX  Flash the built ISO onto USB stick (requires DEV)"
 	@echo "  make clean          Remove Nix build results and temporary drive artifacts"
 	@echo ""
 
-# In CI or when sibling repositories do not exist, use flake.lock (LOCAL_TOOLS=0).
-# In local development with sibling checkouts, default to LOCAL_TOOLS=1.
-ifeq ($(CI),true)
-  LOCAL_TOOLS ?= 0
-else
-  LOCAL_TOOLS ?= $(if $(wildcard ../dfcore),1,0)
-endif
+# Builds use flake.lock, so `make iso` is reproducible from the commit alone.
+# LOCAL_TOOLS=1 overrides dfcore and the tools with the committed HEAD of the
+# sibling repositories, for testing tool changes before they are released.
+LOCAL_TOOLS ?= 0
 
 ifeq ($(LOCAL_TOOLS),1)
 TOOL_OVERRIDES = $(foreach t,dfcore dfdisk dfmount dfnet,--override-input $(t) git+file://$(abspath ../$(t)))
