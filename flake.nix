@@ -44,8 +44,10 @@
       supportedSystems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      # Git revision stamped into /etc/dfnix-release and every audit record
-      revision = self.rev or self.dirtyRev or "unknown";
+      # Git revision stamped into /etc/dfnix-release and every audit record. Nix
+      # withholds it while an input is missing from flake.lock (supplied only by
+      # --override-input), which marks a development build, not a release.
+      revision = self.rev or self.dirtyRev or "unlocked-inputs";
 
       # Custom packages overlay
       forensicsOverlay = final: prev: {

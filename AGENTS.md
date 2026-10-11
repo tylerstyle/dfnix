@@ -44,6 +44,7 @@ If a user requests changes, bug fixes, or new features in **`dfnet`**, **`dfmoun
 - `make` targets default to `LOCAL_TOOLS=1`: they pass `--override-input <repo> git+file://~/git/<repo>`, i.e. the **committed HEAD** of the sibling repositories, without touching `flake.lock`.
 - `LOCAL_TOOLS=0` uses `flake.lock`. That, and the flakeless `default.nix` (flake-compat), require every input to be pushed and locked (`nix flake lock`).
 - `make test-cftt` runs the CFTT write-blocking regression test (needs `/dev/kvm`).
+- `/etc/dfnix-release` carries `DFNIX_REVISION=<git rev>` (or `<rev>-dirty`). While an input is only supplied by `--override-input` (not in `flake.lock`), Nix withholds the revision and builds are stamped `unlocked-inputs`: development builds, never for casework.
 
 ### 4. Forensic Safety Invariants (Do Not Break!)
 - **Hardware Write Blocking**:
