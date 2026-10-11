@@ -28,9 +28,14 @@ help:
 	@echo "  make clean          Remove Nix build results and temporary drive artifacts"
 	@echo ""
 
-# Until dfcore and the tool releases are pushed and locked, builds use the local
-# sibling repositories (their committed HEAD). Set LOCAL_TOOLS=0 to use flake.lock.
-LOCAL_TOOLS ?= 1
+# In CI or when sibling repositories do not exist, use flake.lock (LOCAL_TOOLS=0).
+# In local development with sibling checkouts, default to LOCAL_TOOLS=1.
+ifeq ($(CI),true)
+  LOCAL_TOOLS ?= 0
+else
+  LOCAL_TOOLS ?= $(if $(wildcard ../dfcore),1,0)
+endif
+
 ifeq ($(LOCAL_TOOLS),1)
 TOOL_OVERRIDES = $(foreach t,dfcore dfdisk dfmount dfnet,--override-input $(t) git+file://$(abspath ../$(t)))
 endif

@@ -58,4 +58,4 @@ jobs:
             scripts/run-vm.sh
 
       - name: Run Make Check (Syntax & Evaluator Verification)
-        run: make check
+        run: make check LOCAL_TOOLS=0
