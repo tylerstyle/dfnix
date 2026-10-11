@@ -1,43 +1,26 @@
-{ pkgs ? import <nixpkgs> { config.allowUnfree = true; } }:
+# Flakeless entry point (nix-build): evaluates flake.nix through flake-compat, so
+# `nix-build -A iso` builds exactly what `nix build .#iso` builds, with every input
+# pinned by flake.lock. There is no second, flakeless configuration.
+{ ... }:
 
 let
-  nixos = import (pkgs.path + "/nixos") {
-    configuration = ./configuration.nix;
-    system = "x86_64-linux";
+  lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+  compat = lock.nodes.flake-compat.locked;
+  flake-compat = fetchTarball {
+    url = "https://github.com/edolstra/flake-compat/archive/${compat.rev}.tar.gz";
+    sha256 = compat.narHash;
   };
+  flake = (import flake-compat { src = ./.; }).defaultNix;
+  system = "x86_64-linux";
+  packages = flake.packages.${system};
 in
 {
-  # Build target for the bootable live ISO:
-  # nix-build -A iso
-  iso = nixos.config.system.build.isoImage;
+  # nix-build -A iso / vm / vmware / virtualbox
+  inherit (packages) iso vm vmware virtualbox;
 
-  # Fast prototyping VM launcher (skips squashfs compression and ISO packaging):
-  # nix-build -A vm -o result-vm
-  vm = nixos.config.system.build.vm;
+  # Complete live system closure
+  system = flake.nixosConfigurations.df-forensics-iso.config.system.build.toplevel;
 
-  # Standard packages (ingesting from local sibling repos if available)
-  dfdisk = if builtins.pathExists ../dfdisk/package.nix
-           then pkgs.callPackage ../dfdisk/package.nix { }
-           else pkgs.callPackage ./pkgs/dfdisk { };
-
-  dfmount = if builtins.pathExists ../dfmount/package.nix
-            then pkgs.callPackage ../dfmount/package.nix { }
-            else pkgs.callPackage ./pkgs/dfmount { };
-
-  dfnet = if builtins.pathExists ../dfnet/package.nix
-          then pkgs.callPackage ../dfnet/package.nix { }
-          else pkgs.callPackage ./pkgs/dfnet { };
-
-  dfinfo = if builtins.pathExists ../dfinfo/package.nix
-           then pkgs.callPackage ../dfinfo/package.nix { }
-           else pkgs.callPackage ./pkgs/dfinfo { };
-
-  dfnix-guide = pkgs.callPackage ./pkgs/dfnix-guide { };
-  dfnix-session-chooser = pkgs.callPackage ./pkgs/dfnix-session-chooser { };
-
-  dwarf2json = pkgs.callPackage ./pkgs/dwarf2json { };
-  regripper = pkgs.callPackage ./pkgs/regripper { };
-
-  # Complete system derivation (for testing or persistent install)
-  system = nixos.system;
+  inherit (packages)
+    dfcore dfdisk dfmount dfnet dfinfo dfnix-guide dfnix-session-chooser dwarf2json regripper;
 }

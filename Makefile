@@ -1,11 +1,11 @@
 # ==============================================================================
-# Makefile for dfnix (Flakeless NixOS Live ISO Build System)
+# Makefile for dfnix (NixOS Live ISO & Appliance Build System)
 # ==============================================================================
 
 .PHONY: help iso vm vmware virtualbox check test-cftt test-qemu test-vm test-headless flash clean
 
 help:
-	@echo "dfnix Build System (Flakeless NixOS)"
+	@echo "dfnix Build System"
 	@echo ""
 	@echo "Build Targets:"
 	@echo "  make iso            Build the live bootable forensic ISO (./result-iso)"
@@ -18,28 +18,38 @@ help:
 	@echo "  make test-qemu      Run built ISO in QEMU (auto GUI on desktop, SPICE/VNC on headless server)"
 	@echo "  make test-vm        Run instant VM for rapid prototyping (auto GUI or headless)"
 	@echo "  make test-headless  Force headless QEMU with SPICE (5930), VNC (5901), & SSH (2222)"
-	@echo "  make test-cftt      Write-blocking regression test (KVM; LOCAL_TOOLS=1 uses ../dfdisk etc.)"
+	@echo "  make test-cftt      Write-blocking regression test (KVM)"
+	@echo ""
+	@echo "  LOCAL_TOOLS=1 (default) builds against the committed HEAD of ../dfcore, ../dfdisk,"
+	@echo "  ../dfmount and ../dfnet; LOCAL_TOOLS=0 uses the inputs pinned in flake.lock."
 	@echo ""
 	@echo "Deployment & Utilities:"
 	@echo "  make flash DEV=/dev/sdX  Flash the built ISO onto USB stick (requires DEV)"
 	@echo "  make clean          Remove Nix build results and temporary drive artifacts"
 	@echo ""
 
+# Until dfcore and the tool releases are pushed and locked, builds use the local
+# sibling repositories (their committed HEAD). Set LOCAL_TOOLS=0 to use flake.lock.
+LOCAL_TOOLS ?= 1
+ifeq ($(LOCAL_TOOLS),1)
+TOOL_OVERRIDES = $(foreach t,dfcore dfdisk dfmount dfnet,--override-input $(t) git+file://$(abspath ../$(t)))
+endif
+
 iso:
-	@echo "==> Building dfnix live bootable ISO (flakeless)..."
-	nix-build -A iso -o result-iso
+	@echo "==> Building dfnix live bootable ISO..."
+	nix build .#iso $(TOOL_OVERRIDES) -o result-iso
 
 vm:
 	@echo "==> Building dfnix rapid prototyping VM (skipping squashfs)..."
-	nix-build -A vm -o result-vm
+	nix build .#vm $(TOOL_OVERRIDES) -o result-vm
 
 vmware:
 	@echo "==> Building dfnix VMware appliance (.vmdk)..."
-	nix build .#vmware -o result-vmware
+	nix build .#vmware $(TOOL_OVERRIDES) -o result-vmware
 
 virtualbox:
 	@echo "==> Building dfnix VirtualBox appliance (.ova)..."
-	nix build .#virtualbox -o result-vbox
+	nix build .#virtualbox $(TOOL_OVERRIDES) -o result-vbox
 
 flash:
 ifndef DEV
@@ -55,14 +65,16 @@ endif
 
 check:
 	@echo "==> Running flake evaluation checks..."
-	nix flake check --no-build
-	@echo "==> Evaluating flakeless legacy syntax..."
-	nix-instantiate --eval -E '(import ./default.nix {}).system.drvPath'
-
-# LOCAL_TOOLS=1 tests the committed HEAD of the sibling tool repos instead of the locked inputs
-ifdef LOCAL_TOOLS
-TOOL_OVERRIDES = $(foreach t,dfdisk dfmount dfnet,--override-input $(t) git+file://$(abspath ../$(t)))
-endif
+	nix flake check --no-build $(TOOL_OVERRIDES)
+	@echo "==> Checking shell scripts..."
+	nix shell nixpkgs#shellcheck -c shellcheck scripts/*.sh pkgs/*/*.sh tests/cftt/fixtures.sh
+	@echo "==> Evaluating flakeless entry point (flake-compat)..."
+	@if grep -q '"dfcore"' flake.lock; then \
+		nix-instantiate --eval -E '(import ./default.nix {}).system.drvPath'; \
+	else \
+		echo "    skipped: dfcore is not in flake.lock yet (unpushed); flake-compat can only"; \
+		echo "    evaluate locked inputs. Run 'nix flake lock' after pushing dfcore and the tools."; \
+	fi
 
 test-cftt:
 	@echo "==> Running CFTT write-blocking regression test..."

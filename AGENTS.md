@@ -12,6 +12,7 @@ This document contains critical architectural context, repository boundaries, an
 
 | Repository | Path | Upstream Remote | Technology | Description |
 | :--- | :--- | :--- | :--- | :--- |
+| **`dfcore`** | `~/git/dfcore` | `git@github.com:tylerstyle/dfcore.git` | Rust library + CLIs | Shared safety core: device topology, protected-device registry (`/run/dfnix/protected.json`), hash-chained audit log (`/run/dfnix/audit.jsonl`). Sibling Cargo path dependency (`../dfcore`) of dfdisk, dfmount and dfnet. |
 | **`dfdisk`** | `~/git/dfdisk` | `git@github.com:tylerstyle/dfdisk.git` | Rust (ratatui / clap) | Forensic disk imaging, damaged media rescue (.E01 / raw), and hash verification. |
 | **`dfmount`** | `~/git/dfmount` | `git@github.com:tylerstyle/dfmount.git` | Rust (ratatui) + Python/Bash | Forensic storage mounter (zero journal replay) & target unblocker. |
 | **`dfnet`** | `~/git/dfnet` | `git@github.com:tylerstyle/dfnet.git` | Rust (ratatui / clap) + Bash | Network triage, MAC spoofing, Wi-Fi hotspot AP, share ingest, and raw streams. |
@@ -38,7 +39,13 @@ If a user requests changes, bug fixes, or new features in **`dfnet`**, **`dfmoun
 - **`dfinfo`**:
   - Local to `dfnix/pkgs/dfinfo/` (does not have an independent external repository).
 
-### 3. Forensic Safety Invariants (Do Not Break!)
+### 3. Building against local tool repositories
+- `dfnix` pins `dfcore`, `dfdisk`, `dfmount` and `dfnet` as flake inputs (each tool's `dfcore` input follows dfnix's).
+- `make` targets default to `LOCAL_TOOLS=1`: they pass `--override-input <repo> git+file://~/git/<repo>`, i.e. the **committed HEAD** of the sibling repositories, without touching `flake.lock`.
+- `LOCAL_TOOLS=0` uses `flake.lock`. That, and the flakeless `default.nix` (flake-compat), require every input to be pushed and locked (`nix flake lock`).
+- `make test-cftt` runs the CFTT write-blocking regression test (needs `/dev/kvm`).
+
+### 4. Forensic Safety Invariants (Do Not Break!)
 - **Hardware Write Blocking**:
   - Kernel parameters (`systemd.gpt_auto=0`, `systemd.targets.swap.enable=false`) and udev rules in `modules/hardware/write-blocking.nix` must keep evidence block devices write-blocked by default.
   - Device matching must match parent block devices and their partitions (`sd[a-z]*`, `nvme[0-9]*n[0-9]*`, `mmcblk[0-9]*`).

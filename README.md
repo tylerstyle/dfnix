@@ -44,17 +44,25 @@
 
 ```
 dfnix/
-├── configuration.nix               # Root flakeless NixOS live ISO configuration
-├── default.nix                     # Flakeless build entrypoint (nix-build -A iso)
-├── Makefile                        # Build shortcuts (make iso, make check, make vm)
-├── flake.nix                       # Flake definition with upstream tool inputs
+├── default.nix                     # Flakeless entrypoint: evaluates flake.nix via flake-compat
+├── Makefile                        # Build shortcuts (make iso, make check, make vm, make test-cftt)
+├── flake.nix                       # Inputs (dfcore + tools), overlay, systems built from profiles/
+├── profiles/
+│   ├── base.nix                    # Every system: write-blocking, registry, release stamp, tools, desktops
+│   ├── field.nix                   # Examiner account, MAC randomization, no NTP (live + appliances)
+│   ├── live.nix                    # Live ISO
+│   ├── appliance{,-vmware,-virtualbox}.nix  # VM appliances and their OS-disk exemptions
+│   └── workstation.nix             # Persistent lab workstation (OS disk writable)
+├── tests/cftt/                     # CFTT-style write-blocking regression test (make test-cftt)
 ├── LICENSE                         # Project MIT License
 ├── .gitignore
 ├── README.md
 ├── winefix.md                      # Technical documentation for X-Ways Wine HID patch
 ├── modules/
 │   ├── hardware/
-│   │   └── write-blocking.nix      # 5-Layer udev, blockdev, swap, and daemon rules
+│   │   ├── write-blocking.nix      # 5-Layer udev, blockdev, swap, and daemon rules
+│   │   └── protected-devices.nix   # Boot-time dfcore registry of system disks / live medium
+│   ├── release.nix                 # /etc/dfnix-release with the git revision
 │   ├── forensics/
 │   │   └── default.nix             # DFIR tool suites (imaging, carving, memory, network)
 │   ├── desktop/
@@ -64,9 +72,6 @@ dfnix/
 │   └── iso/
 │       └── live-iso.nix            # copytoram, zstd-19, hybrid UEFI/BIOS boot, offline docs
 ├── pkgs/
-│   ├── dfdisk/                     # Derivation stub (delegates to upstream or local repo)
-│   ├── dfmount/                    # Derivation stub (delegates to upstream or local repo)
-│   ├── dfnet/                      # Derivation stub (delegates to upstream or local repo)
 │   ├── dfinfo/                     # Forensic System Triage & Fastfetch Suite
 │   ├── dfnix-guide/                # Interactive Quick Start Guide & Cheat Sheet
 │   ├── dwarf2json/
@@ -215,7 +220,7 @@ For testing desktop configurations, udev rules, or packages without waiting for 
 ```bash
 # 1. Build VM
 make vm
-# or: nix-build -A vm -o result-vm
+# or, without flakes: nix-build -A vm -o result-vm
 
 # 2. Launch VM
 make test-vm
@@ -278,7 +283,7 @@ make test-headless
 #### A. Build the Bootable ISO
 ```bash
 make iso
-# or: nix-build -A iso -o result-iso
+# or, without flakes: nix-build -A iso -o result-iso
 ```
 *The resulting bootable hybrid ISO is written to `./result-iso/iso/dfnix-forensics.iso`.*
 

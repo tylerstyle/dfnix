@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Build the CFTT evidence disks inside the fixture builder VM. Every disk is left
 # in the state a careless mount, assembly or resume would modify, and each state
 # is asserted here so a fixture can never silently degrade into a clean one.
@@ -153,6 +154,12 @@ test "$(blkid -p -o value -s TYPE "${id}EVID-HIBER-part1")" = swsuspend
 mkfs.ext4 -q -L EV-HIBER "${id}EVID-HIBER-part2"
 mount "${id}EVID-HIBER-part2" "$mnt"
 content hiber > "$mnt"/evidence.txt
+umount "$mnt"
+
+echo "== system disk (mounted at /iso on the dfnix VM, so it is a protected device)"
+mkfs.ext4 -q -L DFNIX-SYS "${id}SYS-ISO"
+mount "${id}SYS-ISO" "$mnt"
+content system > "$mnt"/evidence.txt
 umount "$mnt"
 
 udevadm settle

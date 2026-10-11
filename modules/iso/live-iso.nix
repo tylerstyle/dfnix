@@ -185,34 +185,6 @@
   documentation.man.cache.enable = true;
   documentation.doc.enable = true;
 
-  # Air-gap network settings (no lingering wait-online timeouts)
+  # Examiner account, network and clock settings come from profiles/field.nix
   networking.hostName = "df-forensics";
-  networking.networkmanager.enable = true;
-  # Randomize MACs from the first connection attempt so the hardware MAC never reaches the network
-  networking.networkmanager.wifi.macAddress = "random";
-  networking.networkmanager.ethernet.macAddress = "random";
-  systemd.services.NetworkManager-wait-online.enable = false;
-
-  # No NTP: a sync puts the kernel in 11-minute mode, which writes system time to the suspect's RTC
-  services.timesyncd.enable = false;
-
-  # Timezone & Localization
-  time.timeZone = "Europe/Berlin";
-  i18n.defaultLocale = "en_US.UTF-8";
-  console.keyMap = "de";
-
-  # ----------------------------------------------------------------------------
-  # Live ISO User & Autologin Configuration
-  # ----------------------------------------------------------------------------
-  dfnix.desktop.displayManager.autologin = true;
-  dfnix.desktop.displayManager.autologinUser = "nixos";
-
-  users.users.nixos = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "disk" "storage" "networkmanager" "video" "audio" "input" ];
-    description = "Forensic Field Examiner";
-    initialHashedPassword = "";
-  };
-  users.users.root.initialHashedPassword = "";
-  security.sudo.wheelNeedsPassword = false;
 }

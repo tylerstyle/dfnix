@@ -20,6 +20,8 @@ let
     { name = "hiber"; serial = "EVID-HIBER"; size = 64; evidence = true; }
     { name = "target"; serial = "TARGET-01"; size = 1024; evidence = false; }
     { name = "target-lvm"; serial = "TARGET-LVM"; size = 128; evidence = false; }
+    # Mounted read-only at /iso on the dfnix VM: a system disk for the registry
+    { name = "system"; serial = "SYS-ISO"; size = 64; evidence = false; }
   ];
 
   # The VM start script expands $SHARED_DIR, a directory the test driver shares
@@ -76,8 +78,18 @@ pkgs.testers.runNixOSTest {
     imports = [
       vmBase
       ../../modules/hardware/write-blocking.nix
+      ../../modules/hardware/protected-devices.nix
+      ../../modules/release.nix
     ];
     virtualisation.memorySize = 2048;
+    dfnix.release.revision = "cftt";
+
+    # Like the live medium: read-only, and listed in the protected-device registry
+    virtualisation.fileSystems."/iso" = {
+      device = "/dev/disk/by-id/virtio-SYS-ISO";
+      fsType = "ext4";
+      options = [ "ro" "noload" ];
+    };
 
     environment.systemPackages = with pkgs; [
       dfdisk
@@ -142,6 +154,16 @@ pkgs.testers.runNixOSTest {
     machine.start()
     machine.wait_for_unit("multi-user.target")
     machine.succeed("udevadm settle")
+
+    with subtest("the release revision is stamped"):
+        machine.succeed("grep -qx 'DFNIX_REVISION=cftt' /etc/dfnix-release")
+
+    with subtest("the boot-time registry protects the system disk and no evidence"):
+        machine.wait_for_unit("dfnix-protected-devices.service")
+        registry = json.loads(machine.succeed("cat /run/dfnix/protected.json"))
+        serials = [d["identity"].get("serial") for d in registry["devices"]]
+        assert serials == ["SYS-ISO"], registry
+        assert registry["devices"][0]["role"] == "system_disk", registry
 
     with subtest("hibernation resume is disabled on the kernel command line"):
         machine.succeed("grep -qw noresume /proc/cmdline")
@@ -286,9 +308,55 @@ pkgs.testers.runNixOSTest {
         machine.succeed(f"cat {BY_ID['ext4']} > /dev/tcp/127.0.0.1/9999")
         machine.wait_until_succeeds(f"grep -q '\"status\": \"verified\"' {dest}/net.raw.json")
 
+    with subtest("the registry keeps protecting the system disk after it is unmounted"):
+        sysdisk = kname("system")
+        machine.succeed("umount /iso")
+        out = machine.fail(f"dfmount unblock {BY_ID['system']} --confirm {sysdisk} 2>&1")
+        assert "protected by the dfnix registry" in out, out
+        out = machine.fail(f"dfdisk acquire {BY_ID['system']} --format raw -o {dest}/sys -C CFTT -E SYS01 2>&1")
+        assert "protected by the dfnix registry" in out, out
+        machine.succeed(f"test $(blockdev --getro {BY_ID['system']}) = 1")
+
     with subtest("dfinfo triage runs"):
         machine.succeed("dfinfo -p > /tmp/dfinfo.txt")
         machine.succeed("grep -q 'DFNIX FORENSIC SYSTEM TRIAGE REPORT' /tmp/dfinfo.txt")
+
+    with subtest("the audit chain verifies and records every tool action"):
+        machine.succeed("dfcore-audit verify")
+        records = [json.loads(line) for line in machine.succeed("cat /run/dfnix/audit.jsonl").splitlines()]
+        assert records[0]["action"] == "protected_registry", records[0]
+        assert all(r["system_revision"] == "cftt" for r in records)
+        seen = {(r["tool"], r["action"], r["outcome"]) for r in records}
+        for expected in [
+            ("dfmount", "evidence_mount", "ok"),
+            ("dfmount", "evidence_mount", "refused"),
+            ("dfmount", "unblock_refused", "refused"),
+            ("dfmount", "unblock", "ok"),
+            ("dfmount", "target_mount", "ok"),
+            ("dfdisk", "acquisition_started", "ok"),
+            ("dfdisk", "acquisition_finished", "ok"),
+            ("dfdisk", "acquisition_finished", "refused"),
+            ("dfnet", "receive_started", "ok"),
+            ("dfnet", "receive_finished", "ok"),
+        ]:
+            assert expected in seen, (expected, sorted(seen))
+
+    with subtest("reports, manifests and the case copy are anchored in the chain"):
+        hashes = {r["hash"] for r in records}
+        anchor = machine.succeed(
+            f"grep 'Audit Anchor' {dest}/case/*xfs01*.info | awk '{{print $4}}'"
+        ).strip()
+        assert anchor in hashes, anchor
+        manifest = json.loads(machine.succeed(f"cat {dest}/net.raw.json"))
+        assert manifest["audit_anchor"] in hashes, manifest
+        machine.succeed(f"dfcore-audit verify {dest}/case/audit.jsonl")
+
+    with subtest("tampering with the audit log is detected"):
+        machine.succeed("cp /run/dfnix/audit.jsonl /tmp/tampered.jsonl")
+        machine.succeed("sed -i '2s/\"outcome\":\"ok\"/\"outcome\":\"error\"/' /tmp/tampered.jsonl")
+        machine.fail("cmp -s /run/dfnix/audit.jsonl /tmp/tampered.jsonl")
+        out = machine.fail("dfcore-audit verify /tmp/tampered.jsonl 2>&1")
+        assert "line 2" in out, out
 
     machine.succeed(f"sync && umount {dest}")
     machine.shutdown()
