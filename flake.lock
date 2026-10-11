@@ -1,18 +1,37 @@
 {
   "nodes": {
+    "dfcore": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791731534,
+        "narHash": "sha256-mzwV620LnaWlUM9PawWg3pg04U6FrvAfk9VGyjFC0Ek=",
+        "owner": "tylerstyle",
+        "repo": "dfcore",
+        "rev": "ffce902b0119830f70211ec3efc3512c8bf7f365",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tylerstyle",
+        "repo": "dfcore",
+        "type": "github"
+      }
+    },
     "dfdisk": {
       "inputs": {
+        "dfcore": [
+          "dfcore"
+        ],
         "flake-utils": "flake-utils",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1790626005,
-        "narHash": "sha256-waYfmRxrtOozEdGpSRsfuIW1Q+/izvWuehTvPH7gEzU=",
+        "lastModified": 1791733364,
+        "narHash": "sha256-jurQjYXuzR4ILpfPQTu6uwK/LOzcit4pRRJM1kYH8GM=",
         "owner": "tylerstyle",
         "repo": "dfdisk",
-        "rev": "570dd90b9954a7f1c0d718c5ac981f4238ae0472",
+        "rev": "9a64c3b670838cab7d81f7c953e9efa26b096375",
         "type": "github"
       },
       "original": {
@@ -23,17 +42,20 @@
     },
     "dfmount": {
       "inputs": {
+        "dfcore": [
+          "dfcore"
+        ],
         "flake-utils": "flake-utils_2",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1790083636,
-        "narHash": "sha256-h/BZnL4LZlLGDopsid1oROttVUr2Fkyu8dFrtryTy64=",
+        "lastModified": 1791733223,
+        "narHash": "sha256-7ZgCkUml07X1iJrr8zGHiUFHQf+aCqOzC+pfzyEr10Y=",
         "owner": "tylerstyle",
         "repo": "dfmount",
-        "rev": "16e132c2781e64fc04ff340f9dcad0009294c93a",
+        "rev": "42b41852f87a082b0923e1409c0904f184100631",
         "type": "github"
       },
       "original": {
@@ -44,17 +66,20 @@
     },
     "dfnet": {
       "inputs": {
+        "dfcore": [
+          "dfcore"
+        ],
         "flake-utils": "flake-utils_3",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1790229628,
-        "narHash": "sha256-eONMaexCBodb9OExQ8Fhot7IitorCViLROdaQ2gSwJ4=",
+        "lastModified": 1791733426,
+        "narHash": "sha256-xxcQeGG/Uzb1JwBh9YvQ0is0Nh3QVGAs0+kuOe//EE8=",
         "owner": "tylerstyle",
         "repo": "dfnet",
-        "rev": "8928911dfd69657174518d496fa4abef6c369413",
+        "rev": "5ce1276bad31a59aa44a869a65f0b7ac0aeb7b4d",
         "type": "github"
       },
       "original": {
@@ -151,6 +176,7 @@
     },
     "root": {
       "inputs": {
+        "dfcore": "dfcore",
         "dfdisk": "dfdisk",
         "dfmount": "dfmount",
         "dfnet": "dfnet",
