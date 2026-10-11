@@ -123,14 +123,18 @@ in
     # Restrict LVM automatic event activation across both stage 1 (initrd) and stage 2
     services.lvm.boot.thin.enable = false;
     environment.etc."lvm/lvm.conf".text = ''
-      activation {
+      global {
         event_activation = 0
+      }
+      activation {
         auto_activation_volume_list = []
       }
     '';
     boot.initrd.systemd.contents."/etc/lvm/lvm.conf".text = ''
-      activation {
+      global {
         event_activation = 0
+      }
+      activation {
         auto_activation_volume_list = []
       }
     '';

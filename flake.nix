@@ -169,6 +169,17 @@
         }
       );
 
+      # CFTT-style write-blocking regression test: nix build .#checks.x86_64-linux.cftt
+      checks = forAllSystems (system: {
+        cftt = import ./tests/cftt {
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ forensicsOverlay ];
+            config.allowUnfree = true;
+          };
+        };
+      });
+
       # NixOS System Configurations
       nixosConfigurations = {
         # Target 1: Bootable Live Forensic ISO Image

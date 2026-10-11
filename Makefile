@@ -2,7 +2,7 @@
 # Makefile for dfnix (Flakeless NixOS Live ISO Build System)
 # ==============================================================================
 
-.PHONY: help iso vm vmware virtualbox check test-qemu test-vm test-headless flash clean
+.PHONY: help iso vm vmware virtualbox check test-cftt test-qemu test-vm test-headless flash clean
 
 help:
 	@echo "dfnix Build System (Flakeless NixOS)"
@@ -18,6 +18,7 @@ help:
 	@echo "  make test-qemu      Run built ISO in QEMU (auto GUI on desktop, SPICE/VNC on headless server)"
 	@echo "  make test-vm        Run instant VM for rapid prototyping (auto GUI or headless)"
 	@echo "  make test-headless  Force headless QEMU with SPICE (5930), VNC (5901), & SSH (2222)"
+	@echo "  make test-cftt      Write-blocking regression test (KVM; LOCAL_TOOLS=1 uses ../dfdisk etc.)"
 	@echo ""
 	@echo "Deployment & Utilities:"
 	@echo "  make flash DEV=/dev/sdX  Flash the built ISO onto USB stick (requires DEV)"
@@ -57,6 +58,15 @@ check:
 	nix flake check --no-build
 	@echo "==> Evaluating flakeless legacy syntax..."
 	nix-instantiate --eval -E '(import ./default.nix {}).system.drvPath'
+
+# LOCAL_TOOLS=1 tests the committed HEAD of the sibling tool repos instead of the locked inputs
+ifdef LOCAL_TOOLS
+TOOL_OVERRIDES = $(foreach t,dfdisk dfmount dfnet,--override-input $(t) git+file://$(abspath ../$(t)))
+endif
+
+test-cftt:
+	@echo "==> Running CFTT write-blocking regression test..."
+	nix build -L .#checks.x86_64-linux.cftt $(TOOL_OVERRIDES) -o result-cftt
 
 test-qemu:
 	@./scripts/run-vm.sh --iso
