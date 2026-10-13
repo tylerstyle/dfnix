@@ -3,7 +3,6 @@
 
 // --- Autostart ---
 spawn-at-startup "noctalia"
-spawn-at-startup "kitty"
 spawn-at-startup "sh" "-c" "sleep 1 && xhost +si:localuser:root 2>/dev/null || true"
 spawn-at-startup "sh" "-c" "sleep 1 && noctalia msg wallpaper-random 2>/dev/null || true"
 
