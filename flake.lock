@@ -27,11 +27,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792073682,
-        "narHash": "sha256-0IU8v8QjNf4SmCFN4JSR3mWwTFCuByG7KF7SuzLC6FY=",
+        "lastModified": 1792088013,
+        "narHash": "sha256-OhuCQx7TxzSKXQ8rn931GHnWY8Lss7xmz7vwbIJS7cU=",
         "owner": "tylerstyle",
         "repo": "dfdisk",
-        "rev": "311ebb0f9f4c8978a56a8670c1f0368869ed490d",
+        "rev": "b846a2027c5d848a145a31bd016b35112d04d1b4",
         "type": "github"
       },
       "original": {
@@ -79,7 +79,7 @@
         "narHash": "sha256-K1Sv9i/pG7DwipdFGcsiWDJrlSTYzV0HvrVq0o1xgbY=",
         "owner": "tylerstyle",
         "repo": "dfnet",
-        "rev": "134113d409f186ac64a7589800413d3fcbe25d8c",
+        "rev": "a990b4b7fbe0020153efb62d0d40bf1267558bc4",
         "type": "github"
       },
       "original": {
