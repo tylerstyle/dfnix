@@ -222,7 +222,11 @@ pkgs.testers.runNixOSTest {
             r for r in log
             if r["action"] == "acquisition_finished" and r["details"].get("anchor") == anchor
         ]
-        assert len(finished) == 1 and finished[0]["outcome"] == "ok", finished
+        assert len(finished) == 1, finished
+        # The record's own outcome is "ok" only for a verdict that is not a
+        # failure (exit code 0, 7 or 9); otherwise "error" with the verdict
+        want = "ok" if report["exit_code"] in (0, 7, 9) else "error"
+        assert finished[0]["outcome"] == want, finished
         details = finished[0]["details"]
         assert details["outcome"] == report["outcome"], details
         assert details["exit_code"] == report["exit_code"], details
@@ -771,7 +775,10 @@ pkgs.testers.runNixOSTest {
         finished = [r for r in records if r["action"] == "acquisition_finished"]
         started = [r for r in records if r["action"] == "acquisition_started"]
         assert len(finished) == len(started), (len(finished), len(started))
-        assert all(r["outcome"] == "ok" for r in finished), finished
+        assert all(
+            r["outcome"] == ("ok" if r["details"]["exit_code"] in (0, 7, 9) else "error")
+            for r in finished
+        ), finished
         verdicts = {r["details"]["outcome"] for r in finished}
         assert verdicts == {
             "verified", "complete_unverified", "completed_with_read_errors", "incomplete"
