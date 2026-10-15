@@ -162,6 +162,28 @@ mount "${id}SYS-ISO" "$mnt"
 content system > "$mnt"/evidence.txt
 umount "$mnt"
 
+# The read-error and exclusive-claim tests map device-mapper targets over this
+# disk. No sector is zeros and each names its own number, so a sector an
+# acquisition replaced by zeros (or took from the wrong place) changes the digest.
+echo "== pattern disk: every 512-byte sector holds its own number"
+python3 - "${id}EVID-PATTERN" <<'PY'
+import sys
+
+def sector(n):
+    line = b"dfnix CFTT pattern sector %010d\n" % n
+    return (line * (512 // len(line) + 1))[:512]
+
+with open(sys.argv[1], "r+b") as dev:
+    count = dev.seek(0, 2) // 512
+    dev.seek(0)
+    for n in range(count):
+        dev.write(sector(n))
+    dev.flush()
+    for n in (0, 10243, 40960, count - 1):
+        dev.seek(n * 512)
+        assert dev.read(512) == sector(n), f"sector {n} not written"
+PY
+
 udevadm settle
 sync
 echo "== fixtures ready"

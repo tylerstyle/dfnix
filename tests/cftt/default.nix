@@ -1,14 +1,18 @@
 # CFTT-style write-blocking regression test (Phase 1a, module level).
 #
 # A builder VM creates dirty evidence disks (unreplayed ext4 journal, dirty XFS
-# log, dirty NTFS, LUKS, RAID1 members, LVM, hibernation image). The host hashes
-# the raw disk files, boots a VM with the dfnix write-blocking module and the
-# forensic tools on the same files, exercises dfmount / dfdisk / dfnet / dfinfo,
-# shuts it down and requires every evidence file to be bit-identical.
+# log, dirty NTFS, LUKS, RAID1 members, LVM, hibernation image) and a pattern
+# disk whose sectors name themselves. The host hashes the raw disk files, boots
+# a VM with the dfnix write-blocking module and the forensic tools on the same
+# files, exercises dfmount / dfdisk / dfnet / dfinfo, shuts it down and requires
+# every evidence file to be bit-identical.
 #
 # dfdisk (0.2.0) is held to its exit codes, its .info.json reports and its audit
-# records (the run's "started" and "finished" records, refusals, and the
-# per-boot copy of the log in the case directory).
+# records: verified acquisitions, refusals (overwrite, identity, in use, tmpfs,
+# mounted, destination on the source, protected disk), read errors injected
+# with device-mapper `error` targets (RAW stop and zero-fill, E01, rescue), the
+# exclusive claim the external tools read under (R1), write protection,
+# `dfdisk unmount` and `dfdisk verify`.
 { pkgs }:
 
 let
@@ -26,6 +30,9 @@ let
     { name = "target-lvm"; serial = "TARGET-LVM"; size = 128; evidence = false; }
     # Mounted read-only at /iso on the dfnix VM: a system disk for the registry
     { name = "system"; serial = "SYS-ISO"; size = 64; evidence = false; }
+    # Every sector names itself: read errors and exclusive claims are mapped
+    # over it with device-mapper
+    { name = "pattern"; serial = "EVID-PATTERN"; size = 32; evidence = true; }
   ];
 
   # The VM start script expands $SHARED_DIR, a directory the test driver shares
@@ -67,6 +74,11 @@ let
     text = builtins.readFile ./fixtures.sh;
   };
 
+  # Exclusive (O_EXCL) claims of block devices, as a mount or a dm table takes them
+  exclTool = pkgs.writeScriptBin "cftt-excl" (
+    "#!${pkgs.python3.interpreter}\n" + builtins.readFile ./excl.py
+  );
+
   diskList = builtins.toJSON (map (d: { inherit (d) name serial size evidence; }) disks);
 in
 pkgs.testers.runNixOSTest {
@@ -104,6 +116,7 @@ pkgs.testers.runNixOSTest {
       e2fsprogs
       lvm2
       polkit
+      exclTool
     ];
 
     # Same examiner account shape as the live ISO: wheel member, no password
@@ -118,12 +131,20 @@ pkgs.testers.runNixOSTest {
   testScript = ''
     import hashlib
     import json
+    import re
 
     DISKS = json.loads(${builtins.toJSON diskList})
     EVIDENCE = [d for d in DISKS if d["evidence"]]
     BY_ID = {d["name"]: "/dev/disk/by-id/virtio-" + d["serial"] for d in DISKS}
     FIXTURES = builder.shared_dir / "cftt"
+    SECTOR = 512
     EXAMINER = "cftt-examiner"
+    # Unreadable areas mapped over the pattern disk, as (first sector, sectors):
+    # three sectors inside one 4 KiB page, and 256 KiB starting on a 1 MiB boundary
+    BAD = [(10243, 3), (40960, 512)]
+    BAD_BYTES = [(first * SECTOR, count * SECTOR) for first, count in BAD]
+    # Status column of the read-error table in the text report
+    RANGE_LABEL = {"substituted": "unreadable, zero-filled", "unread": "not read"}
 
 
     def sha256(path):
@@ -140,6 +161,14 @@ pkgs.testers.runNixOSTest {
 
     def kname(name):
         return machine.succeed(f"basename $(readlink -f {BY_ID[name]})").strip()
+
+
+    def digest(data, zeroed=(), algorithm="sha256"):
+        """Digest of data with the (offset, length) ranges in zeroed replaced by zeros."""
+        buf = bytearray(data)
+        for offset, length in zeroed:
+            buf[offset:offset + length] = bytes(length)
+        return hashlib.new(algorithm, buf).hexdigest()
 
 
     def audit_log():
@@ -171,6 +200,11 @@ pkgs.testers.runNixOSTest {
         text = machine.succeed(f"cat {info_path(report)}")
         line = next(ln for ln in text.splitlines() if ln.startswith("VERDICT"))
         return line.split(":", 1)[1].strip(), text
+
+
+    def table(report):
+        """The read-error table of a report as (offset, length, kind)."""
+        return [(r["offset"], r["length"], r["kind"]) for r in report["read_errors"]["ranges"]]
 
 
     def check_audit(report):
@@ -241,6 +275,47 @@ pkgs.testers.runNixOSTest {
         assert line == "VERIFIED (exit code 0)", line
 
 
+    def check_text(report, label):
+        """The text report states the verdict label and lists every range of the
+        read-error table; nothing in it claims that all hashes match."""
+        line, text = verdict(report)
+        assert line == f"{label} (exit code {report['exit_code']})", line
+        assert "ALL HASHES MATCH" not in text
+        for offset, length, kind in table(report):
+            row = rf"^\s+\d+\s+{offset}\s+{length}\s+\d+\s+{RANGE_LABEL[kind]}$"
+            assert re.search(row, text, re.M), f"no read-error row {offset}+{length} {kind}"
+
+
+    def dm_create(name, lines):
+        """A read-only device-mapper device (the disks below are read-only)."""
+        quoted = " ".join(f"'{ln}'" for ln in lines)
+        machine.succeed(f"printf '%s\\n' {quoted} | dmsetup create --readonly {name}")
+        machine.succeed("udevadm settle")
+        return f"/dev/mapper/{name}"
+
+
+    def error_table(dev, sectors, bad):
+        """dm table of dev, linear except for an error target over each
+        (first sector, sectors) in bad."""
+        lines = []
+        pos = 0
+        for first, count in bad:
+            if first > pos:
+                lines.append(f"{pos} {first - pos} linear {dev} {pos}")
+            lines.append(f"{first} {count} error")
+            pos = first + count
+        if pos < sectors:
+            lines.append(f"{pos} {sectors - pos} linear {dev} {pos}")
+        return lines
+
+
+    def map_blocks(text):
+        """(offset, length, status) of every block of a GNU ddrescue map."""
+        rows = [ln.split() for ln in text.splitlines() if ln.strip() and not ln.startswith("#")]
+        # rows[0] is the status line: current position, phase, pass
+        return [(int(pos, 16), int(size, 16), status) for pos, size, status in rows[1:]]
+
+
     with subtest("create blank disk files"):
         FIXTURES.mkdir(parents=True, exist_ok=True)
         for d in DISKS:
@@ -254,6 +329,10 @@ pkgs.testers.runNixOSTest {
         builder.shutdown()
 
     before = {d["name"]: sha256(image(d["name"])) for d in DISKS}
+    pattern = image("pattern").read_bytes()
+    PATTERN_SIZE = len(pattern)
+    PATTERN_SECTORS = PATTERN_SIZE // SECTOR
+    assert pattern[40960 * SECTOR:][:37] == b"dfnix CFTT pattern sector 0000040960\n"
 
     machine.start()
     machine.wait_for_unit("multi-user.target")
@@ -380,6 +459,163 @@ pkgs.testers.runNixOSTest {
         assert "Refusing to overwrite" in err["message"], err
         assert machine.succeed(f"sha256sum {outputs}") == kept
 
+    with subtest("dfdisk refuses a source that is not the expected device"):
+        err = acquire(
+            BY_ID["ext4"], f"{dest}/expect", "EXP01", "--format raw --expect-serial EVID-WRONG", code=3
+        )
+        assert "expected serial EVID-WRONG" in err["message"] and "EVID-EXT4" in err["message"], err
+        machine.succeed(f"test ! -e {dest}/expect")
+        # The dry run with the right expectations is ready, and writes nothing either
+        ext4_bytes = machine.succeed(f"blockdev --getsize64 {BY_ID['ext4']}").strip()
+        ready = dfdisk(
+            f"check {BY_ID['ext4']} -o {dest}/expect -C CFTT -E EXP01 -e {EXAMINER} --format raw"
+            f" --expect-serial EVID-EXT4 --expect-size {ext4_bytes}",
+            0,
+        )
+        assert ready["ready"] is True, ready["problems"]
+        machine.succeed(f"test ! -e {dest}/expect")
+
+    with subtest("dfdisk refuses a source another process holds exclusively"):
+        # An O_EXCL claim, as md, dm or another imager would hold it
+        machine.succeed(
+            f"cftt-excl hold {BY_ID['pattern']} /tmp/held >/dev/null 2>&1 & echo $! >/tmp/held.pid"
+        )
+        machine.wait_for_file("/tmp/held")
+        err = acquire(BY_ID["pattern"], f"{dest}/inuse", "INUSE01", "--format raw", code=3)
+        assert "in use" in err["message"], err
+        busy = dfdisk(
+            f"check {BY_ID['pattern']} -o {dest}/inuse -C CFTT -E INUSE01 -e {EXAMINER} --format raw", 3
+        )
+        assert any("in use" in p["message"] for p in busy["problems"]), busy["problems"]
+        machine.succeed("kill $(cat /tmp/held.pid)")
+        machine.wait_until_succeeds(f"cftt-excl probe {BY_ID['pattern']}")
+
+        # A filesystem mounted in another mount namespace: not in dfdisk's mount
+        # table, so only the exclusive open can find it
+        machine.succeed("mkdir -p /mnt/ns")
+        machine.succeed(
+            "unshare --mount sh -c "
+            f"'mount -o ro,noload {BY_ID['ext4']} /mnt/ns && touch /tmp/ns-mounted && exec sleep infinity'"
+            " >/dev/null 2>&1 & echo $! >/tmp/ns.pid"
+        )
+        machine.wait_for_file("/tmp/ns-mounted")
+        machine.fail("mountpoint -q /mnt/ns")
+        err = acquire(BY_ID["ext4"], f"{dest}/inuse", "INUSE02", "--format raw", code=3)
+        assert "in use" in err["message"], err
+        machine.succeed("kill $(cat /tmp/ns.pid)")
+        machine.wait_until_succeeds(f"cftt-excl probe {BY_ID['ext4']}")
+        machine.succeed(f"test ! -e {dest}/inuse")
+
+    with subtest("dfdisk refuses a tmpfs destination unless --allow-tmpfs"):
+        machine.succeed("mkdir -p /mnt/ram && mount -t tmpfs -o size=160m cftt-ram /mnt/ram")
+        err = acquire(BY_ID["pattern"], "/mnt/ram/case", "RAM01", "--format raw", code=3)
+        assert "tmpfs" in err["message"] and "--allow-tmpfs" in err["message"], err
+        machine.succeed("test ! -e /mnt/ram/case")
+        ram = acquire(BY_ID["pattern"], "/mnt/ram/case", "RAM01", "--format raw --allow-tmpfs")
+        check_verified(ram, before["pattern"])
+        assert any("allowed by --allow-tmpfs" in n for n in ram["notes"]), ram["notes"]
+        machine.succeed("umount /mnt/ram")
+
+    with subtest("dfdisk reports read errors exactly (device-mapper error targets)"):
+        pattern_dev = "/dev/" + kname("pattern")
+        everr = dm_create("everr", error_table(pattern_dev, PATTERN_SECTORS, BAD))
+        out_dir = f"{dest}/readerr"
+        zeroed = digest(pattern, BAD_BYTES)
+
+        # RAW, --on-read-error stop: INCOMPLETE, ending at the first unreadable sector
+        first = BAD_BYTES[0][0]
+        stop = acquire(everr, out_dir, "RAWSTOP", "--format raw --on-read-error stop", code=6)
+        assert stop["outcome"] == "incomplete", stop["outcome_reason"]
+        assert stop["bytes_acquired"] == first, stop["bytes_acquired"]
+        assert table(stop) == [(first, PATTERN_SIZE - first, "unread")], table(stop)
+        assert f"read error at byte offset {first} (sector {BAD[0][0]})" in stop["stop_reason"], stop
+        assert stop["acquisition_hashes"]["sha256"] == digest(pattern[:first]), stop["acquisition_hashes"]
+        machine.succeed(f"test $(stat -c %s {stop['image_files'][0]}) = {first}")
+        check_text(stop, "INCOMPLETE")
+
+        # RAW, --on-read-error zero-fill: each unreadable sector, exactly, as zeros
+        zero = acquire(everr, out_dir, "RAWZERO", "--format raw --on-read-error zero-fill", code=7)
+        assert zero["outcome"] == "completed_with_read_errors", zero["outcome_reason"]
+        assert table(zero) == [(o, n, "substituted") for o, n in BAD_BYTES], table(zero)
+        assert zero["bytes_acquired"] == PATTERN_SIZE, zero["bytes_acquired"]
+        assert zero["acquisition_hashes"]["sha256"] == zeroed, zero["acquisition_hashes"]
+        assert zero["image_hashes"]["sha256"] == zeroed, zero["image_hashes"]
+        check_text(zero, "COMPLETED WITH READ ERRORS")
+
+        # E01: ewfacquire lists what it zero-filled in its error granularity, which
+        # can include readable sectors next to an unreadable one (the E01 engine's
+        # documented behaviour; buffered reads fail by whole page-cache blocks). The
+        # table must hold every injected sector, nothing outside the 1 MiB blocks
+        # around them, and be exactly the sectors that are zeros in the image.
+        e01 = acquire(everr, out_dir, "E01ERR", "--format e01", code=7)
+        assert e01["outcome"] == "completed_with_read_errors", e01["outcome_reason"]
+        listed = table(e01)
+        assert listed and all(kind == "substituted" for _, _, kind in listed), listed
+        injected = {s for o, n in BAD_BYTES for s in range(o // SECTOR, (o + n) // SECTOR)}
+        reported = {s for o, n, _ in listed for s in range(o // SECTOR, (o + n + SECTOR - 1) // SECTOR)}
+        assert injected <= reported, f"unreadable sectors missing from the E01 report: {listed}"
+        near = {s // 2048 for s in injected}
+        assert all(s // 2048 in near for s in reported), f"errors reported far from any bad sector: {listed}"
+        for algorithm in ("md5", "sha256"):
+            expected_digest = digest(pattern, [(o, n) for o, n, _ in listed], algorithm)
+            assert e01["acquisition_hashes"][algorithm] == expected_digest, (algorithm, listed)
+        assert e01["verification"]["result"]["status"] == "matched", e01["verification"]
+        check_text(e01, "COMPLETED WITH READ ERRORS")
+
+        # Rescue: dfdisk runs GNU ddrescue with direct I/O and without -n/-N, so
+        # ddrescue trims and scrapes every failed area down to single sectors and
+        # its map ends with finished (+) and bad-sector (-) blocks only: complete
+        # with read errors (7), not incomplete (6, which untried, non-trimmed or
+        # non-scraped areas would mean)
+        rescue = acquire(everr, out_dir, "RESCUEERR", "--rescue", code=7)
+        assert rescue["outcome"] == "completed_with_read_errors", rescue["outcome_reason"]
+        assert rescue["read_errors"]["source"] == "ddrescue mapfile", rescue["read_errors"]
+        assert table(rescue) == [(o, n, "substituted") for o, n in BAD_BYTES], table(rescue)
+        map_file = next(f for f in rescue["auxiliary_files"] if f["path"].endswith(".map"))
+        assert machine.succeed(f"sha256sum {map_file['path']}").split()[0] == map_file["sha256"]
+        blocks = map_blocks(machine.succeed(f"cat {map_file['path']}"))
+        assert [(o, n) for o, n, s in blocks if s == "-"] == BAD_BYTES, blocks
+        assert {s for _, _, s in blocks} == {"+", "-"}, blocks
+        assert rescue["image_hashes"]["sha256"] == zeroed, rescue["image_hashes"]
+        check_text(rescue, "COMPLETED WITH READ ERRORS")
+
+        machine.succeed("dmsetup remove --retry everr")
+
+    with subtest("R1: ewfacquire and ddrescue read the source while dfdisk holds its claim"):
+        # dm-delay (linear, 50 ms per request) keeps each tool reading long enough
+        # to try an exclusive claim of the source while it reads
+        r1_bytes = 16 << 20
+        machine.succeed("modprobe dm-delay")
+        r1slow = dm_create("r1slow", [f"0 {r1_bytes // SECTOR} delay {pattern_dev} 0 50"])
+        for evidence, extra, tool, code in [
+            ("R1E01", "--format e01", "ewfacquire", 0),
+            ("R1RESCUE", "--rescue", "ddrescue", 9),
+            ("R1RESCUEV", "--rescue --verify-source", "ddrescue", 0),
+        ]:
+            r1 = acquire(
+                r1slow, f"{dest}/r1", evidence, extra, code, f"cftt-excl during {tool} {r1slow} /tmp/r1.log"
+            )
+            probe_log = machine.succeed("cat /tmp/r1.log")
+            print(probe_log)
+            assert "reading:" in probe_log and "busy:" in probe_log, probe_log
+            assert "still reading: []" not in probe_log, probe_log
+            assert r1["read_errors"]["ranges"] == [], r1["read_errors"]
+            assert r1["write_protection"]["exclusive_open"] is True, r1["write_protection"]
+            source_hashes = r1["acquisition_hashes"] if tool == "ewfacquire" else r1["image_hashes"]
+            assert source_hashes["sha256"] == digest(pattern[:r1_bytes]), source_hashes
+            if "--verify-source" in extra:
+                assert r1["verification"]["source_reread"]["status"] == "matched", r1["verification"]
+            # The tool opened the source itself, by the path the "started" record names
+            tool_path = check_audit(r1)["details"]["tool_source_path"]
+            assert any(
+                c["argv"][0].split("/")[-1] == tool and tool_path in c["argv"]
+                for c in r1["provenance"]["commands"]
+            ), r1["provenance"]["commands"]
+            machine.succeed(f"test $(readlink -f {tool_path}) = $(readlink -f {r1slow})")
+        # The claim ends with the run
+        machine.succeed(f"cftt-excl probe {r1slow}")
+        machine.succeed("dmsetup remove --retry r1slow")
+
     with subtest("dfdisk refuses a destination stored on the source disk"):
         tl = kname("target-lvm")
         machine.succeed(f"dfmount unblock {BY_ID['target-lvm']} --confirm {tl}")
@@ -405,6 +641,72 @@ pkgs.testers.runNixOSTest {
         machine.succeed(f"test -z \"$(ls -A {dest}/loopcase 2>/dev/null)\"")
         machine.succeed(f"losetup -d {loop}")
 
+    with subtest("dfdisk unmount unmounts a mounted evidence partition and records it"):
+        part = BY_ID["hiber"] + "-part2"
+        kn = machine.succeed(f"basename $(readlink -f {part})").strip()
+        mnt = f"/media/evidence/{kn}"
+        machine.succeed(f"dfmount evidence {part}")
+        machine.succeed(f"mountpoint -q {mnt}")
+        # dfdisk never acquires a mounted source
+        err = acquire(BY_ID["hiber"], f"{dest}/mounted", "MNT01", "--format raw", code=3)
+        assert "is mounted" in err["message"] and mnt in err["message"], err
+        machine.succeed(f"test ! -e {dest}/mounted")
+        unmounted = dfdisk(f"unmount {part}", 0)
+        assert unmounted["unmounted"] == [mnt], unmounted
+        machine.fail(f"mountpoint -q {mnt}")
+        rec = last_dfdisk_record()
+        assert rec["action"] == "unmount" and rec["outcome"] == "ok", rec
+        assert rec["hash"] == unmounted["audit_record"], (rec, unmounted)
+        assert rec["details"]["mounts_before"] == [mnt], rec["details"]
+        assert rec["details"]["unmounted"] == [mnt], rec["details"]
+
+    with subtest("dfdisk sets a writable source disk and its partitions read-only and says so"):
+        hiber = kname("hiber")
+        nodes = [f"/dev/{hiber}", f"/dev/{hiber}1", f"/dev/{hiber}2"]
+        # As on a host without the dfnix udev rule
+        machine.succeed(f"blockdev --setrw {' '.join(nodes)}")
+        for node in nodes:
+            machine.succeed(f"test $(blockdev --getro {node}) = 0")
+        wp01 = acquire(BY_ID["hiber"], f"{dest}/wp", "WP01", "--format raw")
+        check_verified(wp01, before["hiber"])
+        wp = wp01["write_protection"]
+        assert wp["sysfs_ro_before"] is False, wp
+        assert sorted((n["node"], n["ro"]) for n in wp["partitions_ro_before"]) == [
+            (n, False) for n in nodes[1:]
+        ], wp
+        assert wp["set_by_dfdisk"] is True and wp["method"] == "BLKROSET ioctl", wp
+        assert sorted(wp["nodes_set"]) == nodes and wp["nodes_set"][0] == nodes[0], wp
+        assert sorted((n["node"], n["ro"]) for n in wp["ro_after"]) == [(n, True) for n in nodes], wp
+        _, text = verdict(wp01)
+        assert "BLKROSET ioctl on " + ", ".join(wp["nodes_set"]) in text, text
+        finished = [
+            r for r in audit_log()
+            if r["action"] == "acquisition_finished"
+            and r["details"].get("anchor") == wp01["audit"]["anchor"]
+        ]
+        assert finished[0]["details"]["write_protection"]["nodes_set"] == wp["nodes_set"], finished
+        # dfdisk leaves the read-only flag set after the acquisition
+        for node in nodes:
+            machine.succeed(f"test $(blockdev --getro {node}) = 1")
+
+    with subtest("dfdisk verify re-checks an image against its report"):
+        for rep in (xfs01, ext401, wp01):
+            checked = dfdisk(f"verify {rep['image_files'][0]} --report {info_path(rep)}.json", 0)
+            assert checked["exit_code"] == 0, checked
+            rec = last_dfdisk_record()
+            assert rec["action"] == "image_verification" and rec["details"]["exit_code"] == 0, rec
+        # A copy with one byte changed no longer matches the report
+        img = wp01["image_files"][0]
+        tampered = f"{dest}/tampered/" + img.split("/")[-1]
+        machine.succeed(f"mkdir -p {dest}/tampered && cp {img} {tampered}")
+        machine.succeed(f"printf X | dd of={tampered} bs=1 seek=1000000 conv=notrunc status=none")
+        checked = dfdisk(f"verify {tampered} --report {info_path(wp01)}.json", 5)
+        assert checked["exit_code"] == 5, checked
+        rec = last_dfdisk_record()
+        assert rec["action"] == "image_verification" and rec["details"]["exit_code"] == 5, rec
+        # Every verification leaves an addendum next to the image
+        machine.succeed(f"ls {dest}/tampered/*.verify-*.txt")
+
     with subtest("dfnet receives and verifies a stream bound to one address"):
         size = machine.succeed(f"blockdev --getsize64 {BY_ID['ext4']}").strip()
         machine.fail(
@@ -422,7 +724,12 @@ pkgs.testers.runNixOSTest {
 
     with subtest("the registry protects the system disk, mounted or not"):
         sysdisk = kname("system")
-        # dfdisk does not acquire it while it is mounted
+        # dfdisk neither unmounts nor acquires it while it is mounted
+        err = dfdisk(f"unmount {BY_ID['system']}", 3)["error"]
+        assert "protected by the dfnix registry" in err["message"], err
+        machine.succeed("mountpoint -q /iso")
+        rec = last_dfdisk_record()
+        assert rec["action"] == "unmount" and rec["outcome"] == "refused", rec
         err = acquire(BY_ID["system"], f"{dest}/sys", "SYS01", "--format raw", code=3)
         assert "protected by the dfnix registry" in err["message"], err
         # ... nor after it was unmounted
@@ -453,6 +760,9 @@ pkgs.testers.runNixOSTest {
             ("dfdisk", "acquisition_started", "ok"),
             ("dfdisk", "acquisition_finished", "ok"),
             ("dfdisk", "acquisition_refused", "refused"),
+            ("dfdisk", "unmount", "ok"),
+            ("dfdisk", "unmount", "refused"),
+            ("dfdisk", "image_verification", "ok"),
             ("dfnet", "receive_started", "ok"),
             ("dfnet", "receive_finished", "ok"),
         ]:
@@ -463,7 +773,9 @@ pkgs.testers.runNixOSTest {
         assert len(finished) == len(started), (len(finished), len(started))
         assert all(r["outcome"] == "ok" for r in finished), finished
         verdicts = {r["details"]["outcome"] for r in finished}
-        assert verdicts == {"verified"}, verdicts
+        assert verdicts == {
+            "verified", "complete_unverified", "completed_with_read_errors", "incomplete"
+        }, verdicts
 
     with subtest("reports, manifests and the case copy are anchored in the chain"):
         hashes = {r["hash"] for r in records}
