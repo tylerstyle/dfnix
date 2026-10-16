@@ -31,13 +31,14 @@ ${optionalString (cfg.exemptIdPaths != [ ]) (
 ${concatMapStringsSep "\n" (dev: "      KERNEL==\"${dev}\", GOTO=\"dfnix_ro_end\"") cfg.exemptDevices}
 
       # 3. Force Read-Only at the kernel block level for physical attached storage
-      # Restrict to physical and hypervisor block devices (SATA/SCSI/USB, NVMe, MMC/SD, VirtIO, Xen).
+      # Restrict to physical and hypervisor block devices (SATA/SCSI/USB, NVMe, MMC/SD, VirtIO, Xen)
+      # and ZFS volumes (zd*), which only come from evidence pools.
       # Exclude synthetic/mapped devices (loop*, dm-*, md*, nbd*) to allow decrypted LUKS
       # target containers, software RAID arrays, and live system overlays to function writeable.
       # Note: We omit filesystem-label-based exemptions (e.g. DFNIX_LIVE) so evidence disks
       # cannot evade write-blocking by adopting a spoofed filesystem label.
       ACTION=="add", SUBSYSTEM=="block", \
-        KERNEL=="sd[a-z]*|nvme[0-9]*n[0-9]*|nvme[0-9]*n[0-9]*p[0-9]*|mmcblk[0-9]*|mmcblk[0-9]*p[0-9]*|vd[a-z]*|xvd[a-z]*", \
+        KERNEL=="sd[a-z]*|nvme[0-9]*n[0-9]*|nvme[0-9]*n[0-9]*p[0-9]*|mmcblk[0-9]*|mmcblk[0-9]*p[0-9]*|vd[a-z]*|xvd[a-z]*|zd[0-9]*", \
         ATTR{ro}="1", \
         RUN+="${pkgs.util-linux}/bin/blockdev --setro $env{DEVNAME}"
 
@@ -63,7 +64,7 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Enforce forensic storage invariants (swap neutralization, RAID/LVM lockdown, GPT auto-discovery disable).";
+      description = "Enforce forensic storage invariants (swap neutralization, RAID/LVM/ZFS lockdown, GPT auto-discovery disable).";
     };
     readOnlyAll = mkOption {
       type = types.bool;
@@ -138,6 +139,32 @@ in
         auto_activation_volume_list = []
       }
     '';
+
+    # ZFS (when a profile enables it) is for read-only, manual imports of evidence pools
+    # (`zpool import -o readonly=on -o cachefile=none -N`). Nothing may import, mount,
+    # share, trim, scrub or sync a pool on its own.
+    # One fixed host ID for every dfnix system (ZFS requires one), over the installer default
+    networking.hostId = mkIf config.boot.zfs.enabled "64666e78";
+    boot.zfs = mkIf config.boot.zfs.enabled {
+      forceImportRoot = false;
+      forceImportAll = false;
+      requestEncryptionCredentials = false;
+    };
+    services.zfs = mkIf config.boot.zfs.enabled {
+      trim.enable = false;
+      autoScrub.enable = false;
+      autoSnapshot.enable = false;
+      expandOnBoot = "disabled";
+    };
+    # Masked (linked to /dev/null): zfs.target would start them at boot
+    systemd.services = mkIf config.boot.zfs.enabled {
+      zfs-mount.enable = false;
+      zfs-share.enable = false;
+      zfs-zed.enable = false;
+    };
+    # The ZFS module runs `zpool sync` from the shutdown ramfs
+    systemd.shutdownRamfs.contents."/etc/systemd/system-shutdown/zpool".source =
+      mkIf config.boot.zfs.enabled (mkForce (pkgs.writeShellScript "zpool-no-sync" "exit 0"));
 
     # Polkit rules to prevent udisks2 mounts and unlocks for every user (wheel included:
     # the live examiner account is in wheel). Forensic mounts go through dfmount as root.

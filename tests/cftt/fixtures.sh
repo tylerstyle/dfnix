@@ -184,6 +184,17 @@ with open(sys.argv[1], "r+b") as dev:
         assert dev.read(512) == sector(n), f"sector {n} not written"
 PY
 
+# The pool stays imported: when the builder powers off, its labels still say it
+# is in use by this host, as on a seized server. zpool comes from the system
+# PATH so it matches the loaded kernel module.
+echo "== ZFS pool left imported by another host"
+zpool create -o ashift=12 -O mountpoint=/evpool evpool "${id}EVID-ZFS"
+content zfs > /evpool/evidence.txt
+zpool sync evpool
+test "$(zpool list -H -o health evpool)" = ONLINE
+udevadm settle
+test "$(blkid -p -o value -s TYPE "${id}EVID-ZFS-part1")" = zfs_member
+
 udevadm settle
 sync
 echo "== fixtures ready"

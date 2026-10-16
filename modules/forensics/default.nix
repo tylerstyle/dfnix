@@ -2,6 +2,26 @@
 
 with lib;
 
+let
+  # acquire and dissect-target don't support nixpkgs' default Python (3.14) yet
+  acquire = pkgs.python313Packages.toPythonApplication pkgs.python313Packages.acquire;
+
+  # dissect's command-line tools (target-query, target-shell, target-fs, rdump,
+  # vma-extract, ...) with every dissect module, so they read VMFS, VMDK, VHDX
+  # and the other formats. The environment's interpreter stays off the PATH.
+  dissectEnv = pkgs.python313.withPackages (
+    ps: [ ps.dissect ] ++ ps.dissect-target.optional-dependencies.full
+  );
+  dissect = pkgs.runCommand "dissect-tools-${pkgs.python313Packages.dissect.version}" { } ''
+    mkdir -p $out/bin
+    for tool in ${dissectEnv}/bin/*; do
+      case "''${tool##*/}" in
+        python* | idle* | pydoc* | ipython* | pygmentize | cffi-gen-src | cstruct-stubgen) ;;
+        *) ln -s "$tool" $out/bin/ ;;
+      esac
+    done
+  '';
+in
 {
   options.dfnix.forensics = {
     enable = mkOption {
@@ -12,6 +32,9 @@ with lib;
   };
 
   config = mkIf config.dfnix.forensics.enable {
+    # Procedures the tools point to (e.g. dfmount for RAID, LVM and ZFS members)
+    environment.etc."dfnix/playbooks".source = ../../docs/playbooks;
+
     # Supported filesystems for forensic mounting
     boot.supportedFilesystems = [
       "btrfs"
@@ -20,6 +43,8 @@ with lib;
       "ntfs"
       "vfat"
       "xfs"
+      # Read-only pool import only; the lockdown is in modules/hardware/write-blocking.nix
+      "zfs"
     ];
 
     # Core system packages
@@ -68,6 +93,28 @@ with lib;
       # ------------------------------------------------------------------------
       volatility3             # Modern memory analysis framework
       dwarf2json              # Volatility 3 ISF table generator
+      avml                    # Linux memory acquisition (live systems, static)
+
+      # ------------------------------------------------------------------------
+      # RAID, NAS & Self-Encrypting Drives
+      # ------------------------------------------------------------------------
+      mdadm                   # Manual read-only md assembly (md, DDF, IMSM, Synology SHR)
+      thin-provisioning-tools # LVM thin pools (QNAP)
+      sedutil                 # TCG Opal locking state of self-encrypting drives
+
+      # ------------------------------------------------------------------------
+      # Logical, Mail, Database & Hypervisor Acquisition
+      # ------------------------------------------------------------------------
+      acquire                 # Fox-IT forensic artifact collection from targets and images
+      dissect                 # Fox-IT dissect tools: VMFS, VMDK, VHDX, volumes and targets
+      libpff                  # PST/OST integrity check and export (pffinfo, pffexport)
+      govc                    # VMware ESXi / vSphere snapshots and datastore downloads
+      postgresql              # pg_dump, pg_dumpall, pg_basebackup, psql
+      mariadb.client          # mariadb-dump and client for MySQL / MariaDB
+      sqlcmd                  # Microsoft SQL Server client (COPY_ONLY backups)
+      mongodb-tools           # mongodump
+      age                     # Encrypt captured key material to the examiner
+      minisign                # Sign reports and manifests
 
       # ------------------------------------------------------------------------
       # Artifacts, Windows Registry & Event Logs

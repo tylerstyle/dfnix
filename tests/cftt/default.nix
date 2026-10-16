@@ -1,11 +1,12 @@
 # CFTT-style write-blocking regression test (Phase 1a, module level).
 #
 # A builder VM creates dirty evidence disks (unreplayed ext4 journal, dirty XFS
-# log, dirty NTFS, LUKS, RAID1 members, LVM, hibernation image) and a pattern
-# disk whose sectors name themselves. The host hashes the raw disk files, boots
-# a VM with the dfnix write-blocking module and the forensic tools on the same
-# files, exercises dfmount / dfdisk / dfnet / dfinfo, shuts it down and requires
-# every evidence file to be bit-identical.
+# log, dirty NTFS, LUKS, RAID1 members, LVM, hibernation image, a ZFS pool left
+# imported) and a pattern disk whose sectors name themselves. The host hashes
+# the raw disk files, boots a VM with the dfnix write-blocking module and the
+# forensic tools on the same files, exercises dfmount / dfdisk / dfnet / dfinfo
+# and the read-only md, LVM and ZFS reassembly, shuts it down and requires every
+# evidence file to be bit-identical.
 #
 # dfdisk (0.2.0) is held to its exit codes, its .info.json reports and its audit
 # records: verified acquisitions, refusals (overwrite, identity, in use, tmpfs,
@@ -33,6 +34,8 @@ let
     # Every sector names itself: read errors and exclusive claims are mapped
     # over it with device-mapper
     { name = "pattern"; serial = "EVID-PATTERN"; size = 32; evidence = true; }
+    # A ZFS pool that was never exported (ZFS needs at least 64 MiB per device)
+    { name = "zfs"; serial = "EVID-ZFS"; size = 128; evidence = true; }
   ];
 
   # The VM start script expands $SHARED_DIR, a directory the test driver shares
@@ -52,7 +55,7 @@ let
     # besides the fixtures for anything to write to
     virtualisation.diskImage = null;
     virtualisation.qemu.drives = drives;
-    boot.supportedFilesystems = [ "ntfs" "xfs" ];
+    boot.supportedFilesystems = [ "ntfs" "xfs" "zfs" ];
   };
 
   makeFixtures = pkgs.writeShellApplication {
@@ -88,6 +91,9 @@ pkgs.testers.runNixOSTest {
     imports = [ vmBase ];
     environment.systemPackages = [ makeFixtures ];
     virtualisation.memorySize = 2048;
+    # Another host than dfnix (64666e78): the pool it leaves imported is foreign
+    networking.hostId = "c0ffee00";
+    boot.zfs.forceImportRoot = false;
   };
 
   nodes.machine = { pkgs, ... }: {
@@ -115,6 +121,7 @@ pkgs.testers.runNixOSTest {
       cryptsetup
       e2fsprogs
       lvm2
+      mdadm
       polkit
       exclTool
     ];
@@ -370,11 +377,27 @@ pkgs.testers.runNixOSTest {
         out = machine.succeed("lvmconfig --validate 2>&1")
         assert "unknown" not in out.lower(), out
 
-    with subtest("no RAID assembly, LVM activation, swap or resume"):
+    with subtest("no RAID assembly, LVM activation, ZFS import, swap or resume"):
         machine.fail("grep -q '^md' /proc/mdstat")
         machine.fail("test -e /dev/evvg")
+        # Loading the module imports nothing: there is no zpool.cache
+        machine.succeed("test ! -e /etc/zfs/zpool.cache")
+        machine.succeed("modprobe zfs")
+        out = machine.succeed("zpool list -H -o name 2>&1")
+        assert "evpool" not in out, out
         machine.succeed("test -z \"$(swapon --noheadings --show)\"")
         machine.succeed("test \"$(cat /sys/power/resume)\" = 0:0")
+
+    with subtest("ZFS never mounts, shares, trims, scrubs or syncs a pool on its own"):
+        for unit in ["zfs-mount", "zfs-share", "zfs-zed"]:
+            machine.succeed(f"test \"$(systemctl is-enabled {unit}.service)\" = masked")
+        for unit in ["zpool-trim.timer", "zfs-scrub.timer"]:
+            machine.fail(f"systemctl cat {unit}")
+        # The shutdown ramfs is built at shutdown; build it now to read the hook
+        machine.succeed("systemctl start generate-shutdown-ramfs.service")
+        hook = "/run/initramfs/etc/systemd/system-shutdown/zpool"
+        machine.succeed(f"grep -qx 'exit 0' {hook}")
+        machine.fail(f"grep -q 'zpool' {hook}")
 
     with subtest("polkit denies udisks mount and unlock to the wheel examiner"):
         for action in ["filesystem-mount", "encrypted-unlock"]:
@@ -422,6 +445,53 @@ pkgs.testers.runNixOSTest {
         machine.succeed(f"grep -q 'dfnix CFTT luks evidence' {mnt}/evidence.txt")
         machine.succeed(f"dfmount umount {mnt}")
         machine.succeed("cryptsetup close evluks")
+
+    with subtest("md, LVM and ZFS reassemble read-only from read-only loop devices"):
+        # The documented procedure: image every member with dfdisk, attach the
+        # images with `losetup -r` and assemble those. The evidence disks stand
+        # in for the member images.
+        def ro_loop(name, partscan=False):
+            scan = "-P " if partscan else ""
+            loop = machine.succeed(f"losetup -r {scan}-f --show {BY_ID[name]}").strip()
+            machine.succeed(f"test $(blockdev --getro {loop}) = 1")
+            return loop
+
+        machine.succeed("mkdir -p /mnt/md /mnt/lvm")
+
+        raid = [ro_loop("raid-a"), ro_loop("raid-b")]
+        # A plain node: /dev/md/<name> links come from mdadm's udev rules, which
+        # dfnix leaves out
+        machine.succeed(f"mdadm --assemble --readonly /dev/md100 {' '.join(raid)}")
+        machine.succeed("test $(cat /sys/block/md100/md/array_state) = readonly")
+        machine.succeed("mount -o ro,noload /dev/md100 /mnt/md")
+        machine.succeed("grep -q 'dfnix CFTT raid evidence' /mnt/md/evidence.txt")
+        machine.succeed("umount /mnt/md && mdadm --stop /dev/md100")
+
+        # --devices keeps LVM off the evidence disk that carries the same PV
+        lvm = ro_loop("lvm")
+        lvm_ro = (
+            f"--devices {lvm} --config "
+            "'global { metadata_read_only = 1 } activation { read_only_volume_list = [ \"evvg\" ] }'"
+        )
+        machine.succeed(f"vgchange -ay {lvm_ro} evvg")
+        machine.succeed("test $(blockdev --getro /dev/evvg/evlv) = 1")
+        machine.succeed("mount -o ro,noload /dev/evvg/evlv /mnt/lvm")
+        machine.succeed("grep -q 'dfnix CFTT lvm evidence' /mnt/lvm/evidence.txt")
+        machine.succeed(f"umount /mnt/lvm && vgchange -an {lvm_ro} evvg")
+
+        # The pool was never exported, so ZFS asks for -f: safe with readonly=on
+        zfs = ro_loop("zfs", partscan=True)
+        zimport = f"zpool import -o readonly=on -o cachefile=none -N -R /mnt/zfs -d {zfs}p1"
+        out = machine.fail(f"{zimport} evpool 2>&1")
+        assert "another system" in out, out
+        machine.succeed(f"{zimport} -f evpool")
+        machine.succeed("test $(zpool get -H -o value readonly evpool) = on")
+        machine.succeed("zfs mount evpool")
+        machine.succeed("grep -q 'dfnix CFTT zfs evidence' /mnt/zfs/evpool/evidence.txt")
+        machine.succeed("zpool export evpool")
+        machine.succeed("test ! -e /etc/zfs/zpool.cache")
+
+        machine.succeed(f"losetup -d {' '.join(raid + [lvm, zfs])}")
 
     target = kname("target")
     dest = f"/media/target/{target}"

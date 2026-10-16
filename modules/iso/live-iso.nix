@@ -40,6 +40,13 @@
     "sg"
     "rtsx_pci_sdmmc"
     "rtsx_usb_sdmmc"
+    # Intel VMD (NVMe behind RST on many laptops) and server RAID/HBA controllers,
+    # so their disks enumerate in stage 1 under the write-blocking rules
+    "vmd"
+    "megaraid_sas"
+    "mpt3sas"
+    "smartpqi"
+    "aacraid"
     # Virtual machine disk & bus controllers (VMware, VirtualBox, QEMU/KVM)
     "vmw_pvscsi"
     "mptspi"
