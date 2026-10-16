@@ -106,7 +106,7 @@ loading a kernel module. Write the dump to `/mnt/target` and record the smear wi
 
 ```sh
 date -u +"start_utc: %Y-%m-%dT%H:%M:%SZ" > /mnt/out/case/03-mem-window.txt
-/mnt/kit/avml/$ARCH/avml --compress /mnt/target/physmem_$(hostname).lime
+/mnt/kit/avml/$ARCH/avml acquire --compress /mnt/target/physmem_$(hostname).lime
 date -u +"end_utc:   %Y-%m-%dT%H:%M:%SZ" >> /mnt/out/case/03-mem-window.txt
 sha256sum /mnt/target/physmem_$(hostname).lime > /mnt/out/case/03-mem.sha256
 ```
