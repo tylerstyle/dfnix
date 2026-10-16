@@ -22,9 +22,11 @@ Treat it as a running computer: `live-linux.md` or `live-windows.md` from the
 field kit. Also:
 
 - **Encrypted volumes:** keys (`dflive keys`) before anything else.
-- **Databases:** a consistent dump with the database's own tools, plus the
-  data files and logs from the image later. See the roadmap §3.6 for the
-  commands and their footprints.
+- **Databases:** a consistent logical dump with `dfcollect db postgres` or
+  `dfcollect db mariadb` (the engine's own dump tools, the server's clock and
+  settings recorded, the password never on a command line). Add the data files
+  and WAL/binlog from the image later: deleted rows survive only there. For SQL
+  Server and MongoDB see the roadmap §3.6.
 - **Shares:** acquire what the order covers with `dfnet` (SMB/NFS, mounted
   read-only) and `dfcollect files`.
 - **Volumes you can only get while running:** stream them with `dflive send`
@@ -33,8 +35,10 @@ field kit. Also:
 ## 3. Powered-off server: imaging
 
 - **Boot dfnix through the BMC's virtual media** (mount the ISO in the BMC's
-  web UI), or from USB. A dfnix headless mode (serial console, SSH with a
-  per-case key) and netboot are planned.
+  web UI), or from USB. Choose the "headless" boot entry: a serial console on
+  COM1 and COM2 for the BMC's serial-over-LAN, no graphical session. For work
+  from a laptop, `dfnet ssh start --key case.pub --bind <address>` opens SSH
+  with a per-case key until `dfnet ssh stop`. Netboot is planned.
 - **Hardware RAID:** let the controller present the logical volume and image
   that with dfdisk. Read the member disks' serials and SMART through the
   controller with smartctl (`-d megaraid,N`, `-d cciss,N`, `-d aacraid,H,L,ID`).

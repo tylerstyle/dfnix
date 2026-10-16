@@ -9,7 +9,8 @@ account, or, for infrastructure (IaaS), from snapshots and logs.
    European Production Order (Regulation (EU) 2023/1543; German implementing
    act EBewMG). This is quiet and complete, including deleted items the provider
    still keeps. Check the provider's hashes on receipt and record who delivered
-   it, when, and over which channel. `dfcollect ingest` for this is planned.
+   it, when, and over which channel: `dfcollect ingest` stores the package
+   with its receipt and checks every file against the provider's hash lists.
 2. **The organisation cooperates** (Microsoft 365, Google Workspace, AWS,
    Azure, GCP): the tenant's admin exports or grants you read access, with
    their audit logs.
@@ -22,47 +23,45 @@ data.
 
 ## 2. Drives (OneDrive, SharePoint, Google Drive, Dropbox, Nextcloud/WebDAV, S3, SFTP, Box)
 
-`dfcollect cloud` (rclone underneath, never writing to the remote) is planned.
-Until then, use rclone on dfnix by hand, with the same rules:
+Use `dfcollect cloud`. It drives rclone, and rclone never writes to the
+remote here.
 
-- **Read-only access where the provider has it.**
+- **Read-only access where the provider has it**, when you configure the
+  remote (`rclone config`, into a file on the target):
   - Google Drive: `scope = drive.readonly`.
   - OneDrive/SharePoint: `access_scopes = Files.Read Files.Read.All
     Sites.Read.All offline_access`.
   - S3: credentials with read-only policies.
   - Elsewhere: an account or app password that can only read, if there is one.
-- **Only commands that read the remote:** `lsjson`, `copy` (remote → local),
-  `check`, `md5sum`/`sha1sum`/`hashsum`. Never `sync`, `move`, `bisync`,
-  `delete`, `purge`, `dedupe`, `cleanup`, `mkdir`/`rmdir` on the remote, and no
-  `mount` with a write cache.
-- Run everything as one script and keep its log.
 
 ```sh
-R=evidence-drive:            # the remote you configured
-OUT=/media/target/case01/cloud
-mkdir -p $OUT/files
-# 1. What is there, with the provider's hashes and timestamps
-rclone lsjson -R --hash --metadata --files-only $R > $OUT/listing-before.json
-# 2. Copy (remote -> local only), keeping times and metadata
-rclone copy $R $OUT/files --metadata --checksum --log-file $OUT/rclone.log --log-level INFO
-# 3. Compare the provider's hashes with the copy
-rclone check $R $OUT/files --one-way --log-file $OUT/check.log
-# 4. What is there afterwards (changes during the acquisition show here)
-rclone lsjson -R --hash --metadata --files-only $R > $OUT/listing-after.json
+dfcollect cloud evidence-drive:Projects --rclone-config /media/target/case01/rclone.conf \
+  -o /media/target/case01/drive -C CASE -E cloud01 -e Examiner \
+  --not-before 2026-01-01T00:00:00+01:00 --not-after 2026-07-01T00:00:00+02:00
 ```
 
-Then put the copy into a verifiable collection, with SHA-256 per file and a
-manifest. The copy sits on the writable target, so dfcollect needs
-`--allow-writable-source`, which it records:
+What it does, so you don't have to:
+- **Only reads.** It runs only `rclone lsjson` and `rclone cat` against the
+  remote.
+- **Listings and changes.** It lists the remote with the provider's hashes and
+  IDs before and after, and records what changed in between.
+- **Scope first.** It decides the scope (path, modification time) before
+  reading anything.
+- **Checked copies.** It streams every file into the container and checks it
+  against the provider's own hash: MD5, SHA-1, SHA-256, OneDrive's
+  QuickXorHash, Dropbox's content hash.
+- **No secrets in the record.** It records rclone's version and the remote's
+  configuration, with tokens and secrets removed.
 
-```sh
-dfcollect files $OUT/files -o $OUT/collection -C CASE -E cloud01 -e Examiner --allow-writable-source
-```
+Never use rclone's writing commands on the remote (`sync`, `move`, `bisync`,
+`delete`, `purge`, `dedupe`, `cleanup`, `mkdir`/`rmdir`, `mount` with a write
+cache).
 
 Things to decide and write down:
 - **Google-native documents** (Docs, Sheets, Slides) have no file to copy;
-  they are exported. Record the format (`--drive-export-formats`, e.g.
-  `docx,xlsx,pptx,pdf`).
+  they are exported. Choose the formats with
+  `--rclone-arg=--drive-export-formats=docx,xlsx,pptx,pdf`; dfcollect records
+  every extra rclone option.
 - **Versions and trash:** say whether you take them (`--drive-trashed-only`
   for Drive's trash; OneDrive versions need the provider or the tenant).
 - **Shared with me:** items others shared are a separate question of scope

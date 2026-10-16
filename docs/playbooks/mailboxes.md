@@ -92,9 +92,22 @@ What dfcollect records and doesn't change:
 National clouds: `--graph-endpoint` and `--login-endpoint` (US Government,
 China).
 
-**Logs (tenant cooperation):** the Unified Audit Log, sign-in logs and message
-trace come from the tenant: Purview Audit export, or the admin runs
-Microsoft-Extractor-Suite. dfcollect will read them through Graph itself later.
+**Logs first (tenant cooperation):** `dfcollect m365-logs` reads the Entra
+sign-in logs, the directory audits and the Unified Audit Log for the case's
+window, optionally per account:
+
+```sh
+dfcollect m365-logs --auth app --tenant contoso.onmicrosoft.com --client-id <app id> \
+  --client-secret-file /run/secret --user anna@contoso.com \
+  --not-before 2026-03-01T00:00:00+01:00 --not-after 2026-04-01T00:00:00+02:00 \
+  -o /media/target/case01/m365-logs -C "CASE" -E logs01 -e "Examiner"
+```
+
+The admin grants your app `AuditLog.Read.All`, `Directory.Read.All` and
+`AuditLogsQuery.Read.All`. Sign-in logs need an Entra ID P1/P2 licence; a log
+the tenant refuses fails on its own, and the others are still read. The
+Unified Audit Log is read through an audit log query that dfcollect creates in
+the tenant (recorded). Message trace still comes from the Exchange admin.
 
 ## 3. Google (Gmail, Workspace)
 
@@ -103,8 +116,14 @@ Microsoft-Extractor-Suite. dfcollect will read them through Graph itself later.
 - With the account: Gmail over IMAP with an OAuth token (`dfcollect imap
   imap.gmail.com --auth xoauth2 --token-file ...`). Gmail exposes labels as
   folders, so a message with several labels appears in several folders.
-- `dfcollect gmail` (Gmail API, `format=raw`, labels recorded once per message)
-  is being built.
+- With the account or a Workspace service account: `dfcollect gmail` (Gmail
+  API, `gmail.readonly`, `format=raw` bytes).
+  - `--auth installed`: the holder signs in through a Desktop-app OAuth client
+    (browser on dfnix, or paste the redirect URL).
+  - `--auth service-account --key-file sa.json --mailbox user@domain`: with
+    domain-wide delegation from the Workspace admin.
+  - Each message is stored once under its first label; the scope's patterns
+    are matched against every label it carries.
 
 ## 4. POP3
 
