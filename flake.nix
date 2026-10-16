@@ -73,6 +73,31 @@
 
         # Windows Registry parser
         regripper = final.callPackage ./pkgs/regripper { };
+
+        # Field-kit third-party packages (for the multi-OS field-kit USB stick)
+        uac = final.callPackage ./pkgs/uac { };
+        uac-kit = final.callPackage ./pkgs/uac {
+          withBusybox = true;
+        };
+        velociraptor = final.callPackage ./pkgs/velociraptor { };
+        velociraptor-linux-amd64 = final.callPackage ./pkgs/velociraptor {
+          goos = "linux";
+          goarch = "amd64";
+        };
+        velociraptor-linux-arm64 = final.callPackage ./pkgs/velociraptor {
+          goos = "linux";
+          goarch = "arm64";
+        };
+        velociraptor-windows-amd64 = final.callPackage ./pkgs/velociraptor {
+          goos = "windows";
+          goarch = "amd64";
+        };
+        velociraptor-windows-arm64 = final.callPackage ./pkgs/velociraptor {
+          goos = "windows";
+          goarch = "arm64";
+        };
+        winpmem = final.callPackage ./pkgs/winpmem { };
+        fuji = final.callPackage ./pkgs/fuji { };
       };
 
       # Everything a dfnix system needs from this flake besides its profile
@@ -101,7 +126,26 @@
           };
         in
         {
-          inherit (pkgs) dfcore dfdisk dfmount dfnet dfinfo dfnix-guide dwarf2json regripper dfnix-session-chooser;
+          inherit (pkgs)
+            dfcore
+            dfdisk
+            dfmount
+            dfnet
+            dfinfo
+            dfnix-guide
+            dwarf2json
+            regripper
+            dfnix-session-chooser
+            uac
+            uac-kit
+            velociraptor
+            velociraptor-linux-amd64
+            velociraptor-linux-arm64
+            velociraptor-windows-amd64
+            velociraptor-windows-arm64
+            winpmem
+            fuji
+            ;
 
           # Shortcut: nix build .#iso
           iso = self.nixosConfigurations.df-forensics-iso.config.system.build.isoImage;
