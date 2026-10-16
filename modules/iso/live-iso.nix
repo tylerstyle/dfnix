@@ -1,6 +1,9 @@
 { config, lib, pkgs, ... }:
 
 {
+  # A second boot entry for servers: serial console, no graphical session
+  imports = [ ./headless.nix ];
+
   # ----------------------------------------------------------------------------
   # Live ISO Image Settings
   # ----------------------------------------------------------------------------
