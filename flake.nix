@@ -98,6 +98,7 @@
         };
         winpmem = final.callPackage ./pkgs/winpmem { };
         fuji = final.callPackage ./pkgs/fuji { };
+        fieldkit = final.callPackage ./pkgs/fieldkit { };
       };
 
       # Everything a dfnix system needs from this flake besides its profile
@@ -145,6 +146,7 @@
             velociraptor-windows-arm64
             winpmem
             fuji
+            fieldkit
             ;
 
           # Shortcut: nix build .#iso
@@ -161,16 +163,20 @@
         }
       );
 
-      # CFTT-style write-blocking regression test: nix build .#checks.x86_64-linux.cftt
-      checks = forAllSystems (system: {
-        cftt = import ./tests/cftt {
+      # CFTT-style write-blocking regression test & fieldkit image verification
+      checks = forAllSystems (system:
+        let
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ forensicsOverlay ];
             config.allowUnfree = true;
           };
-        };
-      });
+        in
+        {
+          cftt = import ./tests/cftt { inherit pkgs; };
+          fieldkit = import ./tests/fieldkit { inherit pkgs; };
+        }
+      );
 
       # NixOS System Configurations (see profiles/)
       nixosConfigurations = {

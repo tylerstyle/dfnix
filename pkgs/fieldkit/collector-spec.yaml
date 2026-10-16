@@ -1,0 +1,63 @@
+autoexec:
+  argv:
+    - artifacts
+    - collect
+    - DFNIX.Windows.Triage
+    - --require_admin
+    - --nobanner
+    - --output
+    - velo_$COMPUTERNAME.zip
+  artifact_definitions:
+    - name: DFNIX.Windows.Triage
+      description: |
+        dfnix live Windows triage collection. Uses Velociraptor's built-in
+        NTFS parser (Accessor=ntfs) to acquire locked filesystem metadata,
+        Registry hives, Event Logs, execution artifacts, and volatile state
+        without creating a Volume Shadow Copy.
+      sources:
+        - name: NTFSFileArtifacts
+          query: |
+            SELECT * FROM Artifact.Windows.Collectors.File(
+              Root="C:",
+              Accessor="ntfs",
+              collectionSpec=parse_csv(accessor="data", filename='''
+            Glob
+            $MFT
+            $Extend\$UsnJrnl:$J
+            $LogFile
+            Windows\System32\config\SAM*
+            Windows\System32\config\SECURITY*
+            Windows\System32\config\SOFTWARE*
+            Windows\System32\config\SYSTEM*
+            Windows\System32\config\DEFAULT*
+            Windows\System32\config\RegBack\*
+            Users\*\NTUSER.DAT*
+            Users\*\AppData\Local\Microsoft\Windows\UsrClass.dat*
+            Windows\AppCompat\Programs\Amcache.hve*
+            Windows\AppCompat\Programs\RecentFileCache.bcf
+            Windows\System32\winevt\Logs\*.evtx
+            Windows\Prefetch\*.pf
+            Windows\System32\sru\SRUDB.dat
+            Windows\Tasks\**
+            Windows\System32\Tasks\**
+            $Recycle.Bin\**\$I*
+            Users\*\AppData\Roaming\Microsoft\Windows\Recent\**\*
+            Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+            Users\*\AppData\Local\ConnectedDevicesPlatform\**\*.db*
+            ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\*
+            Users\*\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\*
+            Windows\inf\setupapi.dev.log
+            ''')
+            )
+        - name: Processes
+          query: SELECT * FROM Artifact.Windows.System.Pslist()
+        - name: NetworkConnections
+          query: SELECT * FROM Artifact.Windows.Network.Netstat()
+        - name: Services
+          query: SELECT * FROM Artifact.Windows.System.Services()
+        - name: ScheduledTasks
+          query: SELECT * FROM Artifact.Windows.System.TaskScheduler()
+        - name: DNSCache
+          query: SELECT * FROM Artifact.Windows.System.DNSCache()
+        - name: PartitionTable
+          query: SELECT * FROM Artifact.Windows.Forensics.PartitionTable()
