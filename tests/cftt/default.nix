@@ -431,8 +431,9 @@ pkgs.testers.runNixOSTest {
     with subtest("dfmount refuses containers and raw members"):
         for name, part, reason in [
             ("luks", "", "--readonly"),
-            ("raid-a", "", "raid"),
-            ("lvm", "", "raid"),
+            ("raid-a", "", "raid-lvm-zfs.md"),
+            ("lvm", "", "raid-lvm-zfs.md"),
+            ("zfs", "-part1", "ZFS pool"),
             ("hiber", "-part1", "not a mountable filesystem"),
         ]:
             out = machine.fail(f"dfmount evidence {BY_ID[name]}{part} 2>&1")
@@ -492,6 +493,47 @@ pkgs.testers.runNixOSTest {
         machine.succeed("test ! -e /etc/zfs/zpool.cache")
 
         machine.succeed(f"losetup -d {' '.join(raid + [lvm, zfs])}")
+
+    with subtest("dfmount unlock opens LUKS read-only and lock closes it"):
+        luks = kname("luks")
+        machine.succeed("printf evidence > /tmp/luks.key")
+        machine.succeed(f"dfmount unlock {BY_ID['luks']} --key-file /tmp/luks.key")
+        machine.succeed(f"test $(blockdev --getro /dev/mapper/ev_{luks}) = 1")
+        machine.succeed(f"dfmount evidence /dev/mapper/ev_{luks}")
+        mnt = machine.succeed(f"findmnt -no TARGET -S /dev/mapper/ev_{luks}").strip()
+        machine.succeed(f"grep -q 'dfnix CFTT luks evidence' {mnt}/evidence.txt")
+        machine.succeed(f"dfmount umount {mnt}")
+        machine.succeed(f"dfmount lock ev_{luks}")
+        machine.fail(f"test -e /dev/mapper/ev_{luks}")
+        out = machine.fail(f"dfmount unlock {BY_ID['luks']} --type bitlk --key-file /tmp/luks.key 2>&1")
+        assert "cryptsetup could not open" in out, out
+
+    with subtest("dfmount assemble rebuilds md, LVM and ZFS read-only and takes them apart"):
+        machine.succeed(f"dfmount assemble --kind md {BY_ID['raid-a']} {BY_ID['raid-b']} --name raid")
+        machine.succeed("test $(cat /sys/block/md100/md/array_state) = readonly")
+        machine.succeed("dfmount evidence /dev/md100")
+        machine.succeed("grep -q 'dfnix CFTT raid evidence' /media/evidence/md100/evidence.txt")
+        machine.succeed("dfmount umount /media/evidence/md100")
+        machine.succeed("dfmount disassemble raid")
+        machine.fail("test -e /sys/block/md100/md")
+
+        machine.succeed(f"dfmount assemble --kind lvm {BY_ID['lvm']}")
+        machine.succeed("test $(blockdev --getro /dev/evvg/evlv) = 1")
+        machine.succeed("dfmount evidence /dev/evvg/evlv")
+        mnt = machine.succeed("findmnt -no TARGET -S /dev/mapper/evvg-evlv").strip()
+        machine.succeed(f"grep -q 'dfnix CFTT lvm evidence' {mnt}/evidence.txt")
+        machine.succeed(f"dfmount umount {mnt}")
+        machine.succeed("dfmount disassemble evvg")
+        machine.fail("test -e /dev/evvg/evlv")
+
+        machine.succeed(f"dfmount assemble --kind zfs {BY_ID['zfs']}")
+        machine.succeed("test $(zpool get -H -o value readonly evpool) = on")
+        machine.succeed("zfs mount evpool")
+        machine.succeed("grep -q 'dfnix CFTT zfs evidence' /media/evidence/zfs_evpool/evpool/evidence.txt")
+        machine.succeed("zfs unmount evpool")
+        machine.succeed("dfmount disassemble evpool")
+        machine.succeed("test -z \"$(zpool list -H -o name)\"")
+        machine.succeed("test -z \"$(losetup -a)\"")
 
     target = kname("target")
     dest = f"/media/target/{target}"
@@ -831,6 +873,11 @@ pkgs.testers.runNixOSTest {
             ("dfmount", "unblock_refused", "refused"),
             ("dfmount", "unblock", "ok"),
             ("dfmount", "target_mount", "ok"),
+            ("dfmount", "volume_unlock", "ok"),
+            ("dfmount", "volume_unlock", "error"),
+            ("dfmount", "volume_lock", "ok"),
+            ("dfmount", "raid_assemble", "ok"),
+            ("dfmount", "raid_disassemble", "ok"),
             ("dfdisk", "acquisition_started", "ok"),
             ("dfdisk", "acquisition_finished", "ok"),
             ("dfdisk", "acquisition_refused", "refused"),
