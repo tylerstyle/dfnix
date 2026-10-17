@@ -21,7 +21,8 @@ help:
 	@echo "  make test-cftt      Write-blocking regression test (KVM)"
 	@echo ""
 	@echo "  Builds use the inputs pinned in flake.lock. LOCAL_TOOLS=1 builds against the committed"
-	@echo "  HEAD of ../dfcore, ../dfdisk, ../dfmount and ../dfnet instead (tool development)."
+	@echo "  HEAD of ../dfcore, ../dfdisk, ../dfmount, ../dfnet, ../dflive and ../dfcollect"
+	@echo "  instead (tool development)."
 	@echo ""
 	@echo "Deployment & Utilities:"
 	@echo "  make flash DEV=/dev/sdX  Flash the built ISO onto USB stick (requires DEV)"
@@ -34,7 +35,7 @@ help:
 LOCAL_TOOLS ?= 0
 
 ifeq ($(LOCAL_TOOLS),1)
-TOOL_OVERRIDES = $(foreach t,dfcore dfdisk dfmount dfnet,--override-input $(t) git+file://$(abspath ../$(t)))
+TOOL_OVERRIDES = $(foreach t,dfcore dfdisk dfmount dfnet dflive dfcollect,--override-input $(t) git+file://$(abspath ../$(t)))
 endif
 
 iso:

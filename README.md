@@ -34,7 +34,9 @@
 > `dfnix` is the **distribution and system integration repository**. The core forensic tools packaged into `dfnix` are maintained as **separate, independent Git repositories** (each dual-licensed under **MIT** and **Apache-2.0**):
 > - **[`dfdisk`](https://github.com/tylerstyle/dfdisk)** (`~/git/dfdisk`): Modern forensic disk imaging, damaged media rescue (.E01 / raw), and hash verification (Rust).
 > - **[`dfmount`](https://github.com/tylerstyle/dfmount)** (`~/git/dfmount`): Forensic storage mounter (zero journal replay) & target unblocker (Rust TUI + Python/Bash).
-> - **[`dfnet`](https://github.com/tylerstyle/dfnet)** (`~/git/dfnet`): Modern network triage, MAC spoofing, Wi-Fi hotspot AP, share ingest, and raw disk receiver (Rust TUI + Bash).
+> - **[`dfnet`](https://github.com/tylerstyle/dfnet)** (`~/git/dfnet`): Modern network triage, MAC spoofing, Wi-Fi hotspot AP, share ingest, raw and authenticated stream receivers, capture and temporary SSH (Rust TUI + Bash).
+> - **[`dflive`](https://github.com/tylerstyle/dflive)** (`~/git/dflive`): Companion for running systems on the field kit (status, keys, memory, state, streams to `dfnet stream`), and `dfkit`, which writes and verifies field-kit sticks (Rust).
+> - **[`dfcollect`](https://github.com/tylerstyle/dfcollect)** (`~/git/dfcollect`): Logical acquisition: files, IMAP, Microsoft 365 mail and logs, Gmail, cloud storage, databases and provider deliveries, with per-item hashes and a verifiable manifest (Rust).
 >
 > **For Developers & AI Agents:** See [`AGENTS.md`](AGENTS.md) for contribution guidelines and multi-repository sync instructions.
 
@@ -137,7 +139,7 @@ dfnix/
 | **Decryption & Filesystems** | `cryptsetup` (LUKS), `dislocker` (BitLocker), `libbde`, `veracrypt`, `apfs-fuse`, `apfsprogs`, `ntfs3g`, `btrfs-progs`, `xfsprogs` |
 | **Memory Forensics** | `volatility3`, `dwarf2json` |
 | **Registry & Artifacts** | `regripper` (rip.pl), `chainsaw` (EVTX), `python3Packages.evtx`, `sqlitebrowser` |
-| **Network & Acquisition** | `dfnet`, `macchanger`, `wireshark`, `tshark`, `tcpdump`, `zeek`, `cifs-utils`, `nfs-utils`, `sshfs`, `rclone` |
+| **Network & Acquisition** | `dfnet`, `dfcollect`, `dfkit`, `macchanger`, `wireshark`, `tshark`, `tcpdump`, `zeek`, `cifs-utils`, `nfs-utils`, `sshfs`, `rclone` |
 | **Optical Media & Hardware** | `dvdplusrwtools`, `cdrtools`, `safecopy`, `f3`, `nvme-cli`, `hdparm`, `sdparm`, `sg3_utils`, `lsscsi` |
 | **Mobile & Firmware** | `binwalk`, `android-tools` (ADB/Fastboot), `libimobiledevice` |
 | **Hardware & Triage** | `smartmontools`, `parted`, `gptfdisk`, `pciutils`, `usbutils`, `btop`, `yazi`, `fastfetch` |

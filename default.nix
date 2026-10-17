@@ -22,5 +22,6 @@ in
   system = flake.nixosConfigurations.df-forensics-iso.config.system.build.toplevel;
 
   inherit (packages)
-    dfcore dfdisk dfmount dfnet dfinfo dfnix-guide dfnix-session-chooser dwarf2json regripper;
+    dfcore dfdisk dfmount dfnet dfcollect dfkit dfinfo dfnix-guide dfnix-session-chooser dwarf2json
+    regripper fieldkit;
 }

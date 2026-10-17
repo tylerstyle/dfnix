@@ -35,6 +35,10 @@ in
     # Procedures the tools point to (e.g. dfmount for RAID, LVM and ZFS members)
     environment.etc."dfnix/playbooks".source = ../../docs/playbooks;
 
+    # The field-kit stick image and its manifest: `dfkit write` and `dfkit verify`
+    # take it from here (pkgs/fieldkit, docs/playbooks/live-*.md)
+    environment.etc."dfnix/fieldkit".source = pkgs.fieldkit;
+
     # Supported filesystems for forensic mounting
     boot.supportedFilesystems = [
       "btrfs"
@@ -105,6 +109,7 @@ in
       # ------------------------------------------------------------------------
       # Logical, Mail, Database & Hypervisor Acquisition
       # ------------------------------------------------------------------------
+      dfcollect               # Files, IMAP, Microsoft 365 mail and logs, Gmail, cloud, databases, provider deliveries
       acquire                 # Fox-IT forensic artifact collection from targets and images
       dissect                 # Fox-IT dissect tools: VMFS, VMDK, VHDX, volumes and targets
       libpff                  # PST/OST integrity check and export (pffinfo, pffexport)
@@ -157,6 +162,7 @@ in
       dvdplusrwtools          # DVD/BD mastering and raw extraction
       cdrtools                # CD/DVD reading tools (readcd, cdda2wav)
       safecopy                # Resilient data rescue for damaged optical / flash media
+      dfkit                   # Write and verify field-kit sticks (/etc/dfnix/fieldkit)
       f3                      # Fight Flash Fraud (detect fake capacity flash drives)
       nvme-cli                # NVMe health, namespaces, and vendor diagnostics
       hdparm                  # SATA drive parameters, security freeze & firmware info

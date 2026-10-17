@@ -36,10 +36,27 @@
       url = "github:tylerstyle/dfnet";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.dfcore.follows = "dfcore";
+      inputs.dflive.follows = "dflive";
+    };
+
+    # Companion for running systems (dflive, for the field kit) and the
+    # field-kit stick writer (dfkit)
+    dflive = {
+      url = "github:tylerstyle/dflive";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.dfcore.follows = "dfcore";
+    };
+
+    # Logical acquisition: files, mailboxes, Microsoft 365 logs, cloud,
+    # databases and provider deliveries
+    dfcollect = {
+      url = "github:tylerstyle/dfcollect";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.dfcore.follows = "dfcore";
     };
   };
 
-  outputs = { self, nixpkgs, dfcore, dfdisk, dfmount, dfnet, ... }@inputs:
+  outputs = { self, nixpkgs, dfcore, dfdisk, dfmount, dfnet, dflive, dfcollect, ... }@inputs:
     let
       supportedSystems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -55,6 +72,18 @@
         dfdisk = dfdisk.packages.${prev.stdenv.hostPlatform.system}.default;
         dfmount = dfmount.packages.${prev.stdenv.hostPlatform.system}.default;
         dfnet = dfnet.packages.${prev.stdenv.hostPlatform.system}.default;
+        dfcollect = dfcollect.packages.${prev.stdenv.hostPlatform.system}.default;
+        dfkit = dflive.packages.${prev.stdenv.hostPlatform.system}.dfkit;
+
+        # dflive for the field kit: static Linux (x86_64, aarch64) and Windows
+        dflive-static = dflive.packages.${prev.stdenv.hostPlatform.system}.dflive-static;
+        dflive-aarch64-static = dflive.packages.${prev.stdenv.hostPlatform.system}.dflive-aarch64-static;
+        dflive-windows = dflive.packages.${prev.stdenv.hostPlatform.system}.dflive-windows;
+        # Where the field kit's dflive binaries come from (SOURCES.txt, manifest)
+        dflive-source = {
+          url = "https://github.com/tylerstyle/dflive";
+          inherit (dflive) rev narHash;
+        };
 
         # Protected-device registry and audit log tools (dfcore-protect, dfcore-audit)
         dfcore = final.callPackage "${dfcore}/package.nix" { };
@@ -132,6 +161,11 @@
             dfdisk
             dfmount
             dfnet
+            dfcollect
+            dfkit
+            dflive-static
+            dflive-aarch64-static
+            dflive-windows
             dfinfo
             dfnix-guide
             dwarf2json
