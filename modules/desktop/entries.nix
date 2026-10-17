@@ -32,6 +32,16 @@
       keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" ];
     })
     (pkgs.makeDesktopItem {
+      name = "dfcollect";
+      desktopName = "dfcollect Logical Acquisition";
+      genericName = "Forensic Logical Acquisition TUI";
+      comment = "Acquire the files in scope from a read-only mount into a verifiable container, preview the scope first, and verify collections";
+      exec = "kitty --title \"dfcollect - Logical Acquisition\" sudo dfcollect";
+      icon = "document-save";
+      categories = [ "System" "Utility" ];
+      keywords = [ "forensics" "evidence" "logical" "files" "scope" "collection" "verify" ];
+    })
+    (pkgs.makeDesktopItem {
       name = "dfinfo";
       desktopName = "dfinfo Forensic Triage";
       genericName = "Forensic System Triage & Fastfetch";

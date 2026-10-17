@@ -16,11 +16,11 @@
         "type": "github"
       },
       "locked": {
-        "lastModified": 1792221758,
-        "narHash": "sha256-3Umx5XTTrjzXMZHIw20dNgbmxIgGjH7SBshCXb7IUC4=",
+        "lastModified": 1792255081,
+        "narHash": "sha256-/jKH4gzILbKvY+zAXkdoRXW8k557UppCSOTRzLG3Qog=",
         "owner": "tylerstyle",
         "repo": "dfcollect",
-        "rev": "cd8732e667589b79791f422b17ffe25dd3ac79a6",
+        "rev": "9f80e6f42202113d3de416b80665186ba2d02ddb",
         "type": "github"
       }
     },

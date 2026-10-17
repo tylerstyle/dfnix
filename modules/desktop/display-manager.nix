@@ -20,9 +20,15 @@ let
      sudo dfdisk     Forensic Disk Imaging & ddrescue TUI (RAW, E01, verification)
      sudo dfmount    Forensic Storage Manager (hardware/software write-blocking)
      sudo dfnet      Forensic Network Operations (MAC spoof, SMB/NFS share mount)
+     sudo dfcollect  Logical Acquisition TUI (files in scope, preview, verify)
      sudo dfinfo     Forensic System Triage & Fastfetch (Hardware, Disks, Network)
      dfnix-guide     Forensic Quick Start Guide & Keybinding Cheat Sheet (F1)
      sudo nmtui      NetworkManager Connection Manager
+
+   [FORENSIC CLIs]
+     dfcollect       Mail (IMAP, M365, Gmail), M365 logs, cloud, databases,
+                     provider packages: dfcollect <mode> --help
+     sudo dfkit      Write and verify field-kit sticks (dfkit --help)
 
    [SYSTEM COMMANDS]
      sudo poweroff   Safely sync disks and power off the machine
