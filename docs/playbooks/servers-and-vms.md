@@ -35,10 +35,13 @@ field kit. Also:
 ## 3. Powered-off server: imaging
 
 - **Boot dfnix through the BMC's virtual media** (mount the ISO in the BMC's
-  web UI), or from USB. Choose the "headless" boot entry: a serial console on
-  COM1 and COM2 for the BMC's serial-over-LAN, no graphical session. For work
-  from a laptop, `dfnet ssh start --key case.pub --bind <address>` opens SSH
-  with a per-case key until `dfnet ssh stop`. Netboot is planned.
+  web UI), or from USB. Choose the "headless: serial console" boot entry: no
+  graphical session; boot messages on COM2, where most BMCs redirect
+  serial-over-LAN (iDRAC, iLO and Supermicro by default; check the BIOS's
+  console redirection setting), and a login prompt on COM1 and COM2 at
+  115200 baud. For work from a laptop,
+  `dfnet ssh start --key case.pub --bind <address>` opens SSH with a per-case
+  key until `dfnet ssh stop`. Netboot is planned.
 - **Hardware RAID:** let the controller present the logical volume and image
   that with dfdisk. Read the member disks' serials and SMART through the
   controller with smartctl (`-d megaraid,N`, `-d cciss,N`, `-d aacraid,H,L,ID`).
