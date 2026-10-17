@@ -24,6 +24,10 @@
   velociraptor-windows-arm64,
   winpmem,
   fuji,
+  dflive-static,
+  dflive-aarch64-static,
+  dflive-windows,
+  dflive-source,
 }:
 
 let
@@ -240,6 +244,29 @@ let
     Homepage:      https://busybox.net/
     Source URL:    https://busybox.net/downloads/busybox-${staticX86_64.busybox.version}.tar.bz2
     Source Hash:   ${staticX86_64.busybox.src.outputHash}
+
+    --------------------------------------------------------------------------------
+    13. dflive — Live System Companion & dfstream/1 Sender (KIT-WIN & KIT-LNX)
+    --------------------------------------------------------------------------------
+    Package:       dflive (windows-x86_64, linux-x86_64-static, linux-aarch64-static)
+    Version:       ${dflive-static.version}
+    Licence:       MIT OR Apache-2.0 (Dual-licensed under MIT and Apache License 2.0)
+    Homepage:      ${dflive-source.url}
+    Source URL:    ${dflive-source.url}
+    Source Rev:    ${dflive-source.rev}
+    Source Hash:   ${dflive-source.narHash}
+    Linked Runtimes:
+      - Linux static builds (dflive/x86_64/dflive, dflive/aarch64/dflive):
+        statically linked against musl libc (${staticX86_64.musl.version}, MIT License);
+        zero dynamic library dependencies.
+      - Windows build (dflive.exe, PE32+ x86-64 console):
+        statically links the mingw-w64 runtime (crt2.o, libmingwex.a, libmingw32.a;
+        ZPL-2.1 / public domain) and GCC runtime unwind/intrinsics (libgcc.a,
+        libgcc_eh.a; GPL-3.0-or-later WITH GCC-exception-3.1). Dynamically imports
+        only standard Windows OS DLLs (advapi32.dll,
+        api-ms-win-core-synch-l1-2-0.dll, bcrypt.dll, bcryptprimitives.dll,
+        iphlpapi.dll, kernel32.dll, mpr.dll, msvcrt.dll, ntdll.dll, psapi.dll,
+        userenv.dll, ws2_32.dll, wtsapi32.dll); runs without extra DLLs.
   '';
 
   packageMetadataJson = writeText "fieldkit-packages.json" (
@@ -252,6 +279,14 @@ let
           license = "MIT";
           source_url = "https://github.com/tylerstyle/dfnix";
           source_hash = "in-tree";
+        };
+        dflive = {
+          pname = "dflive";
+          version = dflive-static.version;
+          license = "MIT OR Apache-2.0";
+          source_url = dflive-source.url;
+          source_rev = dflive-source.rev;
+          source_hash = dflive-source.narHash;
         };
         velociraptor = {
           pname = "velociraptor";
@@ -366,6 +401,9 @@ let
 
     def classify_file(part_label, rel_path):
         base = os.path.basename(rel_path)
+        if rel_path == "dflive.exe" or rel_path.startswith("dflive/"):
+            p = pkgs["dflive"]
+            return ("dflive", p["version"], p["license"])
         if rel_path.startswith("winpmem/"):
             p = pkgs["winpmem"]
             return ("winpmem", p["version"], p["license"])
@@ -539,6 +577,8 @@ let
         mkdir -p "$out/partitions/KIT-WIN/winpmem" \
                  "$out/partitions/KIT-WIN/velociraptor" \
                  "$out/partitions/KIT-MAC/.fseventsd" \
+                 "$out/partitions/KIT-LNX/dflive/x86_64" \
+                 "$out/partitions/KIT-LNX/dflive/aarch64" \
                  "$out/partitions/KIT-LNX/avml/x86_64" \
                  "$out/partitions/KIT-LNX/avml/aarch64" \
                  "$out/partitions/KIT-LNX/velociraptor" \
@@ -547,6 +587,9 @@ let
         # ----------------------------------------------------------------------
         # 1. KIT-WIN (NTFS)
         # ----------------------------------------------------------------------
+        cp "${dflive-windows}/bin/dflive.exe" "$out/partitions/KIT-WIN/dflive.exe"
+        chmod 0555 "$out/partitions/KIT-WIN/dflive.exe"
+
         cp "${winpmem}/share/winpmem/winpmem_mini_x64_rc2.exe" "$out/partitions/KIT-WIN/winpmem/"
         cp "${winpmem}/share/winpmem/winpmem_mini_x86.exe" "$out/partitions/KIT-WIN/winpmem/"
         cp "${winpmem}/share/winpmem/go-winpmem_amd64_1.0-rc2_signed.exe" "$out/partitions/KIT-WIN/winpmem/"
@@ -577,6 +620,10 @@ let
         # ----------------------------------------------------------------------
         cp -r "${uac-kit}" "$out/partitions/KIT-LNX/uac"
         chmod -R u+w "$out/partitions/KIT-LNX/uac"
+        cp "${dflive-static}/bin/dflive" "$out/partitions/KIT-LNX/dflive/x86_64/dflive"
+        cp "${dflive-aarch64-static}/bin/dflive" "$out/partitions/KIT-LNX/dflive/aarch64/dflive"
+        chmod 0555 "$out/partitions/KIT-LNX/dflive/x86_64/dflive" "$out/partitions/KIT-LNX/dflive/aarch64/dflive"
+
         cp "${staticX86_64.avml}/bin/avml" "$out/partitions/KIT-LNX/avml/x86_64/avml"
         cp "${staticAarch64.avml}/bin/avml" "$out/partitions/KIT-LNX/avml/aarch64/avml"
         chmod 0555 "$out/partitions/KIT-LNX/avml/x86_64/avml" "$out/partitions/KIT-LNX/avml/aarch64/avml"

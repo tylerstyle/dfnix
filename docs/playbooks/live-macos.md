@@ -8,8 +8,12 @@ or recovery key is unknown.
 
 Mount or use the `KIT-MAC` partition (`/Volumes/KIT-MAC`, HFS+ with Spotlight
 and `fseventsd` disabled via `.metadata_never_index` and `.fseventsd/no_log`).
-Write small outputs to `/Volumes/KIT-OUT` and large outputs to an external USB
-target disk (`/Volumes/TARGET`), never to the suspect's internal volume.
+`KIT-MAC` ships **Fuji** (`Fuji.dmg`) and **UAC** (`uac/`); `dflive` is not on
+`KIT-MAC` (no macOS build yet), so scene, FileVault/APFS state, and volatile
+state are recorded with macOS's built-in tools and live acquisition uses Fuji
+and UAC. Write small outputs to `/Volumes/KIT-OUT` and large outputs to an
+external USB target disk (`/Volumes/TARGET`), never to the suspect's internal
+volume.
 
 > **Footprint & Warnings**
 > - **Auto-mount:** `diskarbitrationd` mounts USB partitions automatically when
@@ -63,8 +67,7 @@ unlocked:
   recovery key, **you must acquire the unlocked volume and artifacts in Steps 5–6
   before shutting down**.
 - **Key material handling:** Treat `02-*` files on `/Volumes/KIT-OUT` (exFAT) as
-  sensitive material (store the stick in a sealed evidence bag after the scene)
-  until `dflive keys` encrypts them with `age`.
+  sensitive material and store the stick in a sealed evidence bag after the scene.
 - *Footprint:* read-only queries to `diskarbitrationd` / `storagekitd`.
 
 ## 3. Memory
@@ -108,7 +111,7 @@ df -h >> /Volumes/KIT-OUT/case/04-mounts.txt
 - *Footprint:* runs standard macOS userland binaries (`netstat`, `lsof`, `ps`,
   `launchctl`); `sudo` logs an entry in the Unified Log.
 
-## 5. Unlocked volumes, live (Fuji logical acquisition or `dflive send`)
+## 5. Unlocked volumes, live (Fuji logical acquisition)
 
 Raw block imaging of `/dev/disk0` on a running T2 or Apple silicon Mac yields
 ciphertext or inconsistent APFS state. Attach `Fuji.dmg` from `KIT-MAC`
@@ -122,10 +125,6 @@ sudo /Volumes/Fuji/Fuji.app/Contents/MacOS/Fuji
 - Use Fuji to acquire the unlocked Data volume (`/System/Volumes/Data` or `/`)
   via `asr` or `rsync` with metadata preservation and SHA-256 hashing to
   `/Volumes/TARGET`.
-- For non-APFS unlocked volumes or disk images, stream to `dfnix` over a direct
-  network link (`dfnet stream --bind 10.0.0.1 -o /media/target/case01/live -C ...`
-  on `dfnix`, and `dflive send <source> --to 10.0.0.1:9998` once `dflive` for
-  macOS is on the kit).
 - **If the Mac is powered off and the password or recovery key is known:**
   1. Boot into **recoveryOS** (hold Power on Apple silicon, or `Cmd+R` on Intel),
      open Terminal, mount `KIT-MAC`, attach `Fuji.dmg` read-only, and run Fuji
@@ -194,5 +193,6 @@ ls -la /Users/*/Library/Mobile\ Documents \
    ```
 3. Shut down (`sudo shutdown -h now`) or power off per policy. On Intel Macs
    without T2 (or with external boot allowed), image with `dfdisk`.
-4. On `dfnix`, mount `KIT-MAC` read-only and verify all files against
-   `KIT-MANIFEST.sha256` to confirm the suspect system modified no tool.
+4. On `dfnix`, verify the field-kit stick (`dfkit verify` or against
+   `KIT-MANIFEST.sha256` on `KIT-MAC`) to confirm the suspect system modified no
+   tool.

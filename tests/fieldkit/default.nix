@@ -3,9 +3,11 @@
 let
   inherit (pkgs)
     attr
+    binutils
     e2fsprogs
     exfatprogs
     fieldkit
+    file
     gptfdisk
     hfsprogs
     jq
@@ -35,6 +37,10 @@ let
     assert manifest["schema"] == "dfnix.fieldkit.manifest/v0", f"Unexpected schema: {manifest.get('schema')}"
     assert "image" in manifest and manifest["image"]["sha256"], "Missing top-level image hash in manifest.json"
     assert len(manifest["partitions"]) == 4, f"Expected 4 partitions, got {len(manifest['partitions'])}"
+    assert "dflive" in manifest["packages"], "Missing dflive in manifest.json packages"
+    assert manifest["packages"]["dflive"]["license"] == "MIT OR Apache-2.0", (
+        f"Unexpected dflive license: {manifest['packages']['dflive']}"
+    )
 
     def sha256_file(path):
         h = hashlib.sha256()
@@ -72,6 +78,16 @@ let
 
         expected_files = {f["path"]: f for f in part["files"]}
         expected_symlinks = {s["path"]: s for s in part["symlinks"]}
+
+        if label == "KIT-WIN":
+            assert "dflive.exe" in expected_files, "dflive.exe missing from KIT-WIN in manifest.json"
+            assert expected_files["dflive.exe"]["package"] == "dflive", expected_files["dflive.exe"]
+            assert expected_files["dflive.exe"]["license"] == "MIT OR Apache-2.0", expected_files["dflive.exe"]
+        elif label == "KIT-LNX":
+            for df_rel in ("dflive/x86_64/dflive", "dflive/aarch64/dflive"):
+                assert df_rel in expected_files, f"{df_rel} missing from KIT-LNX in manifest.json"
+                assert expected_files[df_rel]["package"] == "dflive", expected_files[df_rel]
+                assert expected_files[df_rel]["license"] == "MIT OR Apache-2.0", expected_files[df_rel]
 
         missing_files = set(expected_files.keys()) - set(actual_files.keys())
         extra_files = set(actual_files.keys()) - set(expected_files.keys())
@@ -132,8 +148,10 @@ vmTools.runInLinuxVM (
       memSize = 1024;
       nativeBuildInputs = [
         attr
+        binutils
         e2fsprogs
         exfatprogs
+        file
         gptfdisk
         hfsprogs
         jq
@@ -220,6 +238,13 @@ vmTools.runInLinuxVM (
         test -s "/mnt/$part/SOURCES.txt"
       done
 
+      test -f /mnt/KIT-WIN/dflive.exe
+      grep -q '  dflive\.exe$' /mnt/KIT-WIN/KIT-MANIFEST.sha256
+      test -x /mnt/KIT-LNX/dflive/x86_64/dflive
+      test -x /mnt/KIT-LNX/dflive/aarch64/dflive
+      grep -q '  dflive/x86_64/dflive$' /mnt/KIT-LNX/KIT-MANIFEST.sha256
+      grep -q '  dflive/aarch64/dflive$' /mnt/KIT-LNX/KIT-MANIFEST.sha256
+
       test -f /mnt/KIT-WIN/live-windows.md
       test -f /mnt/KIT-WIN/live-windows.txt
       test -f /mnt/KIT-MAC/live-macos.md
@@ -229,9 +254,48 @@ vmTools.runInLinuxVM (
       test -f /mnt/KIT-OUT/.metadata_never_index
       test -f /mnt/KIT-OUT/.fseventsd/no_log
 
-      echo "=== 7. Verifying UAC runs from its root directory on KIT-LNX and KIT-MAC ==="
+      echo "=== 7. Verifying UAC and dflive binaries (file types, execution, DLL imports) ==="
       (cd /mnt/KIT-LNX/uac && ./uac --version) | grep -F "UAC (Unix-like Artifacts Collector)"
       (cd /mnt/KIT-MAC/uac && ./uac --version) | grep -F "UAC (Unix-like Artifacts Collector)"
+
+      file -b /mnt/KIT-WIN/dflive.exe | tee /dev/stderr | grep -E "PE32\+ executable.*\(console\).*x86-64"
+      file -b /mnt/KIT-LNX/dflive/x86_64/dflive | tee /dev/stderr | grep -E "ELF 64-bit LSB.*x86-64.*static(-pie|ally) linked"
+      file -b /mnt/KIT-LNX/dflive/aarch64/dflive | tee /dev/stderr | grep -E "ELF 64-bit LSB.*ARM aarch64.*static(-pie|ally) linked"
+
+      /mnt/KIT-LNX/dflive/x86_64/dflive --version | grep -F "dflive "
+      /mnt/KIT-LNX/dflive/x86_64/dflive --help | grep -F "Companion for running systems"
+
+      python3 - /mnt/KIT-WIN/dflive.exe <<'PY'
+      import subprocess
+      import sys
+
+      exe = sys.argv[1]
+      out = subprocess.check_output(["objdump", "-p", exe], text=True)
+      dlls = {
+          line.split("DLL Name:", 1)[1].strip().lower()
+          for line in out.splitlines()
+          if "DLL Name:" in line
+      }
+      allowed = {
+          "advapi32.dll",
+          "api-ms-win-core-synch-l1-2-0.dll",
+          "bcrypt.dll",
+          "bcryptprimitives.dll",
+          "iphlpapi.dll",
+          "kernel32.dll",
+          "mpr.dll",
+          "msvcrt.dll",
+          "ntdll.dll",
+          "psapi.dll",
+          "userenv.dll",
+          "ws2_32.dll",
+          "wtsapi32.dll",
+      }
+      assert dlls, "No DLL imports found in dflive.exe"
+      unexpected = dlls - allowed
+      assert not unexpected, f"Unexpected non-system DLL imports in dflive.exe: {sorted(unexpected)}"
+      print(f"[OK] dflive.exe imports only Windows system DLLs: {sorted(dlls)}")
+      PY
 
       echo "=== 8. Verifying every file, symlink, and attribute against manifest.json ==="
       python3 "${verifyManifestPy}" "${fieldkit}/manifest.json" /mnt
