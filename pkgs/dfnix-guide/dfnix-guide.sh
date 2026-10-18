@@ -220,11 +220,12 @@ ${B_YELLOW}5. ADVANCED TOOLS & CAPABILITIES${NC}
   receiving incoming raw disk dumps over netcat/socat.
 
 • ${BOLD}Logical Acquisition (dfcollect):${NC}
-  ${CYAN}sudo dfcollect${NC} opens the TUI: acquire only the files a warrant covers from
-  a read-only mount (dfmount evidence, dfnet share) into a verifiable container.
-  Preview the scope before anything is copied; verify collections afterwards.
-  Mailboxes (IMAP, M365, Gmail), M365 logs, cloud, databases and provider
-  packages run on the command line: ${CYAN}dfcollect <mode> --help${NC}.
+  ${CYAN}sudo dfcollect${NC} opens the TUI: acquire only what a warrant covers into a
+  verifiable container: files from a read-only mount (dfmount evidence, dfnet
+  share), mailboxes (IMAP, M365, Gmail), M365 logs, cloud, databases and
+  provider packages. Preview the scope before anything is copied (M365 logs
+  have no preview); verify collections afterwards.
+  The same modes on the command line: ${CYAN}dfcollect <mode> --help${NC}.
   Playbooks for each case type: ${GREEN}/etc/dfnix/playbooks${NC}
 
 • ${BOLD}Field-Kit Sticks (dfkit):${NC}
