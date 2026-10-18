@@ -128,6 +128,19 @@
         winpmem = final.callPackage ./pkgs/winpmem { };
         fuji = final.callPackage ./pkgs/fuji { };
         fieldkit = final.callPackage ./pkgs/fieldkit { };
+
+        # Upstream avml flaky timing test (upload::stream::tests::higher_concurrency_allows_overlap)
+        # fails under load in CI. Skip only in static builds (e.g. for fieldkit and uac),
+        # preserving the binary cache derivation and drvPath for the live ISO's native avml.
+        avml =
+          if prev.stdenv.hostPlatform.isStatic then
+            prev.avml.overrideAttrs (old: {
+              checkFlags = (old.checkFlags or [ ]) ++ [
+                "--skip=upload::stream::tests::higher_concurrency_allows_overlap"
+              ];
+            })
+          else
+            prev.avml;
       };
 
       # Everything a dfnix system needs from this flake besides its profile
