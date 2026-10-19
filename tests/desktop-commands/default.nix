@@ -36,6 +36,7 @@ let
     "xhost" = sysPkgs.xhost;
     "lsblk" = sysPkgs.util-linux;
     "xways" = "xways";
+    "guymager-root" = "guymager-root";
     "xwayland-satellite" = sysPkgs.xwayland-satellite;
 
     # Pinned desktop items that ship inside regular packages:
@@ -52,6 +53,7 @@ let
     "dfkit.desktop" = "dfkit.desktop";
     "xways.desktop" = "xways.desktop";
     "xways-desktop.desktop" = "xways-desktop.desktop";
+    "guymager.desktop" = "guymager.desktop";
   };
 
   # Discard string context so packages are NOT added to the derivation's closure inputs

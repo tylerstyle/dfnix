@@ -35,6 +35,25 @@ let
     ln -s ${pkgs.volatility3}/bin/vol $out/bin/volatility3
     ln -s ${pkgs.volatility3}/bin/vol $out/bin/vol.py
   '';
+
+  # guymager reads the disks, so it runs as root. It's a Qt program: on the niri
+  # session it reaches the display through xwayland-satellite, where niri's
+  # startup grants root access (xhost +si:localuser:root).
+  guymager-root = pkgs.writeShellApplication {
+    name = "guymager-root";
+    runtimeInputs = [ pkgs.guymager ];
+    text = ''
+      if [[ "''${1:-}" == "-h" || "''${1:-}" == "--help" ]]; then
+        echo "usage: guymager-root [guymager options]"
+        echo "Starts guymager as root on the current display (it reads the disks)."
+        exit 0
+      fi
+      if [[ $EUID -eq 0 ]]; then
+        exec guymager "$@"
+      fi
+      exec sudo DISPLAY="''${DISPLAY:-:0}" QT_QPA_PLATFORM=xcb ${pkgs.guymager}/bin/guymager "$@"
+    '';
+  };
 in
 {
   options.dfnix.forensics = {
@@ -74,10 +93,29 @@ in
       dfmount                 # Forensic write-blocked mounter & target unblocker suite
       libewf                  # Expert Witness Compression Format tools (ewfacquire, ewfexport)
       dcfldd                  # Forensically enhanced dd with live hashing
+      dc3dd                   # DC3's dd: hashing, logging, verification
+      guymager                # Graphical forensic imager (E01, AFF, raw; `guymager-root`)
+      guymager-root           # Starts guymager as root on the session's display
+      (makeDesktopItem {
+        name = "guymager";
+        desktopName = "Guymager Forensic Imager";
+        genericName = "Graphical Forensic Imager";
+        comment = "Acquire E01, AFF or raw images with hash verification (runs as root)";
+        exec = "guymager-root";
+        icon = "drive-harddisk";
+        categories = [ "System" "Utility" ];
+        keywords = [ "forensics" "imaging" "e01" "acquisition" "guymager" ];
+      })
       ddrescue                # GNU data recovery for damaged and failing media
       ddrescueview            # Graphical viewer for ddrescue mapfiles
       afflib                  # Advanced Forensics Format utilities
       qemu-utils              # qemu-nbd for mounting virtual disk images (.vmdk, .qcow2, .vhd)
+
+      # ------------------------------------------------------------------------
+      # Hashing & Integrity
+      # ------------------------------------------------------------------------
+      hashdeep                # Recursive hash sets and audit mode (hashdeep, md5deep, sha256deep)
+      rhash                   # Many hash algorithms in one pass (SHA-2/3, BLAKE2, ...)
 
       # ------------------------------------------------------------------------
       # File System Analysis, TSK & Carving
@@ -100,6 +138,9 @@ in
       veracrypt               # TrueCrypt / VeraCrypt volume mounter
       apfs-fuse               # Apple APFS read-only FUSE driver
       apfsprogs               # APFS filesystem utilities
+      libfsapfs               # APFS incl. encrypted volumes, read-only (fsapfsinfo, fsapfsmount)
+      libfvde                 # FileVault / Core Storage (fvdeinfo, fvdemount)
+      libvshadow              # Windows Volume Shadow Copies (vshadowinfo, vshadowmount)
       ntfs3g                  # NTFS user-space driver
       btrfs-progs             # Btrfs utilities
       xfsprogs                # XFS utilities
@@ -143,6 +184,13 @@ in
       chainsaw                # High-speed Windows event log (EVTX) hunter
       python3Packages.evtx    # Pure Python EVTX parser
       sqlitebrowser           # Visual SQLite database inspector
+      sqlite                  # sqlite3 command-line shell
+      jq                      # JSON (dfcollect output, manifests, logs)
+      exiftool                # File metadata
+      yara                    # Rule-based triage scanning
+      yara-x                  # Next-generation YARA engine
+      _7zz                    # 7-Zip (7zz), e.g. Velociraptor collections on KIT-OUT
+      unzip                   # ZIP archives
 
       # ------------------------------------------------------------------------
       # Network Forensics, Recon & Remote Acquisition
@@ -191,6 +239,9 @@ in
       binwalk                 # Firmware extraction and analysis
       android-tools           # ADB & Fastboot for mobile extraction
       libimobiledevice        # iOS device communication utilities
+      ifuse                   # Mount iOS device media and app containers
+      ideviceinstaller        # List installed iOS apps
+      scrcpy                  # Mirror an Android screen to document it
 
       # ------------------------------------------------------------------------
       # Hardware Triage & System Utilities
