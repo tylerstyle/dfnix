@@ -18,8 +18,11 @@ stdenv.mkDerivation rec {
   ];
 
   postPatch = ''
+    sed -i '1s|^.*$|#!/usr/bin/env perl|' rip.pl
     substituteInPlace rip.pl \
-      --replace-fail 'my $plugindir;' "my \$plugindir = \"$out/share/regripper/plugins/\";"
+      --replace-fail 'my $plugindir;' "my \$plugindir = \"$out/share/regripper/plugins/\";" \
+      --replace-fail '($^O eq "MSWin32") ? ($plugindir = $str."plugins/")' '# ($plugindir fixed by Nix packaging)' \
+      --replace-fail '                   : ($plugindir = File::Spec->catfile($str, "plugins"));' ""
   '';
 
   installPhase = ''

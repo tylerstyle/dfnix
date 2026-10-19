@@ -4,13 +4,19 @@ with lib;
 
 let
   # acquire and dissect-target don't support nixpkgs' default Python (3.14) yet
-  acquire = pkgs.python313Packages.toPythonApplication pkgs.python313Packages.acquire;
+  acquire = pkgs.python313Packages.toPythonApplication (
+    pkgs.python313Packages.acquire.overridePythonAttrs (old: {
+      propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
+        pkgs.python313Packages.pycryptodome
+      ];
+    })
+  );
 
   # dissect's command-line tools (target-query, target-shell, target-fs, rdump,
   # vma-extract, ...) with every dissect module, so they read VMFS, VMDK, VHDX
   # and the other formats. The environment's interpreter stays off the PATH.
   dissectEnv = pkgs.python313.withPackages (
-    ps: [ ps.dissect ] ++ ps.dissect-target.optional-dependencies.full
+    ps: [ ps.dissect ps.maxminddb ] ++ ps.dissect-target.optional-dependencies.full
   );
   dissect = pkgs.runCommand "dissect-tools-${pkgs.python313Packages.dissect.version}" { } ''
     mkdir -p $out/bin
@@ -20,6 +26,14 @@ let
         *) ln -s "$tool" $out/bin/ ;;
       esac
     done
+  '';
+
+  # Volatility 3 command-line aliases: upstream only installs `vol` and `volshell`,
+  # but documentation and tutorials expect `volatility3` and `vol.py`.
+  volatility3-aliases = pkgs.runCommand "volatility3-aliases" { } ''
+    mkdir -p $out/bin
+    ln -s ${pkgs.volatility3}/bin/vol $out/bin/volatility3
+    ln -s ${pkgs.volatility3}/bin/vol $out/bin/vol.py
   '';
 in
 {
@@ -96,6 +110,7 @@ in
       # Memory Forensics
       # ------------------------------------------------------------------------
       volatility3             # Modern memory analysis framework
+      volatility3-aliases     # Aliases: volatility3 and vol.py -> vol
       dwarf2json              # Volatility 3 ISF table generator
       avml                    # Linux memory acquisition (live systems, static)
 
@@ -192,7 +207,6 @@ in
       ripgrep                 # Fast pattern searching
       tmux                    # Terminal multiplexer
       fastfetch               # System banner
-      htop                    # Process viewer
       btop                    # Modern visual monitor
       yazi                    # Fast terminal file manager
     ];
