@@ -36,6 +36,7 @@ let
     "xhost" = sysPkgs.xhost;
     "lsblk" = sysPkgs.util-linux;
     "xways" = "xways";
+    "xwayland-satellite" = sysPkgs.xwayland-satellite;
 
     # Pinned desktop items that ship inside regular packages:
     "dfnix-guide.desktop" = sysPkgs.dfnix-guide;

@@ -48,6 +48,8 @@ with lib;
       libnotify
       xinit
       xhost
+      # Rootless X11 bridge for Wayland (started automatically on-demand by niri)
+      xwayland-satellite
     ];
 
     # 4. System-wide configuration fallbacks (checks /etc/niri and /etc/xdg)
