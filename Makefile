@@ -2,7 +2,7 @@
 # Makefile for dfnix (NixOS Live ISO & Appliance Build System)
 # ==============================================================================
 
-.PHONY: help iso vm vmware virtualbox check test-cftt test-qemu test-vm test-headless flash clean
+.PHONY: help iso vm vmware virtualbox check test-cftt test-tools test-qemu test-vm test-headless flash clean
 
 help:
 	@echo "dfnix Build System"
@@ -15,6 +15,8 @@ help:
 	@echo "  make check          Verify Nix syntax and evaluate system closure"
 	@echo ""
 	@echo "Virtualization & Testing Targets:"
+	@echo "  make test-cftt      Write-blocking regression test (KVM)"
+	@echo "  make test-tools     Run forensic tools startup smoke check"
 	@echo "  make test-qemu      Run built ISO in QEMU (auto GUI on desktop, SPICE/VNC on headless server)"
 	@echo "  make test-vm        Run instant VM for rapid prototyping (auto GUI or headless)"
 	@echo "  make test-headless  Force headless QEMU with SPICE (5930), VNC (5901), & SSH (2222)"
@@ -82,6 +84,10 @@ check:
 test-cftt:
 	@echo "==> Running CFTT write-blocking regression test..."
 	nix build -L .#checks.x86_64-linux.cftt $(TOOL_OVERRIDES) -o result-cftt
+
+test-tools:
+	@echo "==> Running forensic tools startup smoke check..."
+	nix build -L .#checks.x86_64-linux.tool-smoke $(TOOL_OVERRIDES) -o result-tool-smoke
 
 test-qemu:
 	@./scripts/run-vm.sh --iso

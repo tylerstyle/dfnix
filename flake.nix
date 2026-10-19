@@ -226,6 +226,7 @@
             inherit pkgs;
             nixosConfig = self.nixosConfigurations.df-forensics-iso;
           };
+          tool-smoke = import ./tests/tool-smoke { inherit pkgs; };
         }
       );
 
