@@ -12,7 +12,6 @@ let
     hfsprogs
     jq
     kmod
-    ntfs3g
     python3
     runCommand
     util-linux
@@ -110,11 +109,7 @@ let
             assert fmeta.get("license"), f"[{label}] Missing license provenance for {rel}"
 
             # Check read-only / immutable flags per filesystem
-            if label == "KIT-WIN":
-                raw_attr = os.getxattr(full, "system.ntfs_attrib_be")
-                val = int.from_bytes(raw_attr, "big")
-                assert (val & 0x1) == 0x1, f"[KIT-WIN] NTFS FILE_ATTRIBUTE_READONLY not set on {rel}: {raw_attr.hex()}"
-            elif label in ("KIT-MAC", "KIT-LNX"):
+            if label in ("KIT-MAC", "KIT-LNX"):
                 mode = os.stat(full).st_mode
                 assert (mode & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)) == 0, (
                     f"[{label}] Write permission bit still set on {rel}: {oct(mode)}"
@@ -156,7 +151,6 @@ vmTools.runInLinuxVM (
         hfsprogs
         jq
         kmod
-        ntfs3g
         python3
         util-linux
       ];
@@ -209,8 +203,8 @@ vmTools.runInLinuxVM (
       check_part 4 "EBD0A0A2-B9E5-4433-87C0-68B6B72699C7" "KIT-OUT" "0000000000000000"
 
       echo "=== 4. Running read-only fsck on all 4 filesystems ==="
-      echo "--- Partition 1 (KIT-WIN, NTFS): ntfsfix -n ---"
-      ntfsfix -n "''${loopdev}p1"
+      echo "--- Partition 1 (KIT-WIN, exFAT): fsck.exfat -n ---"
+      fsck.exfat -n "''${loopdev}p1"
 
       echo "--- Partition 2 (KIT-MAC, HFS+): fsck.hfsplus -n ---"
       fsck.hfsplus -n "''${loopdev}p2"
@@ -223,7 +217,7 @@ vmTools.runInLinuxVM (
 
       echo "=== 5. Mounting all 4 partitions read-only ==="
       mkdir -p /mnt/KIT-WIN /mnt/KIT-MAC /mnt/KIT-LNX /mnt/KIT-OUT
-      ntfs-3g -o ro "''${loopdev}p1" /mnt/KIT-WIN
+      mount -t exfat -o ro "''${loopdev}p1" /mnt/KIT-WIN
       mount -t hfsplus -o ro "''${loopdev}p2" /mnt/KIT-MAC
       mount -t ext4 -o ro,noload "''${loopdev}p3" /mnt/KIT-LNX
       mount -t exfat -o ro "''${loopdev}p4" /mnt/KIT-OUT

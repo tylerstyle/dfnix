@@ -7,7 +7,6 @@
   python3,
   gptfdisk,
   util-linux,
-  ntfs3g,
   hfsprogs,
   e2fsprogs,
   exfatprogs,
@@ -31,7 +30,7 @@
 }:
 
 let
-  version = "0.1.0";
+  version = "0.2.0";
 
   staticX86_64 =
     if stdenvNoCC.hostPlatform.isx86_64 then
@@ -465,7 +464,7 @@ let
         {
             "number": 1,
             "label": "KIT-WIN",
-            "filesystem": "ntfs",
+            "filesystem": "exfat",
             "gpt_type_code": "0700",
             "gpt_type_guid": "EBD0A0A2-B9E5-4433-87C0-68B6B72699C7",
             "gpt_partition_guid": "44464E49-5800-4B49-5400-000000000001",
@@ -585,7 +584,7 @@ let
                  "$out/partitions/KIT-OUT/.fseventsd"
 
         # ----------------------------------------------------------------------
-        # 1. KIT-WIN (NTFS)
+        # 1. KIT-WIN (exFAT)
         # ----------------------------------------------------------------------
         cp "${dflive-windows}/bin/dflive.exe" "$out/partitions/KIT-WIN/dflive.exe"
         chmod 0555 "$out/partitions/KIT-WIN/dflive.exe"
@@ -673,7 +672,6 @@ vmTools.runInLinuxVM (
       nativeBuildInputs = [
         gptfdisk
         util-linux
-        ntfs3g
         hfsprogs
         e2fsprogs
         exfatprogs
@@ -686,7 +684,7 @@ vmTools.runInLinuxVM (
       };
       preVM = ''
         # 612 MiB raw image:
-        #   1: KIT-WIN (192 MiB, NTFS,  GPT 0700, read-only bit 60)
+        #   1: KIT-WIN (192 MiB, exFAT,  GPT 0700, read-only bit 60)
         #   2: KIT-MAC ( 96 MiB, HFS+,  GPT AF00, read-only bit 60)
         #   3: KIT-LNX (256 MiB, ext4,  GPT 8300, read-only bit 60)
         #   4: KIT-OUT ( ~66 MiB, exFAT, GPT 0700, writable)
@@ -758,12 +756,11 @@ vmTools.runInLinuxVM (
 
       mkdir -p /mnt/win /mnt/mac /mnt/lnx /mnt/out
 
-      echo "==> Building Partition 1: KIT-WIN (NTFS)..."
-      mkfs.ntfs -F -Q -L KIT-WIN /dev/vda1
-      ntfs-3g /dev/vda1 /mnt/win
-      cp -r --preserve=mode,timestamps,links "${staging}/partitions/KIT-WIN/." /mnt/win/
-      # Set native NTFS FILE_ATTRIBUTE_READONLY (0x00000001) on all regular files
-      find /mnt/win -type f -exec setfattr -v 0x00000001 -n system.ntfs_attrib_be {} \;
+      echo "==> Building Partition 1: KIT-WIN (exFAT)..."
+      mkfs.exfat -L KIT-WIN -U 44464e49-5800-4b49-5400-000000000001 /dev/vda1
+      tune.exfat -I 0x44464E01 /dev/vda1
+      mount -t exfat /dev/vda1 /mnt/win
+      cp -r --preserve=timestamps "${staging}/partitions/KIT-WIN/." /mnt/win/
       find /mnt/win -exec touch -h -d "1980-01-01T00:00:00Z" {} +
       sync
       umount /mnt/win
@@ -791,6 +788,7 @@ vmTools.runInLinuxVM (
 
       echo "==> Building Partition 4: KIT-OUT (exFAT)..."
       mkfs.exfat -L KIT-OUT -U 44464e49-5800-4b49-5400-000000000004 /dev/vda4
+      tune.exfat -I 0x44464E04 /dev/vda4
       mount -t exfat /dev/vda4 /mnt/out
       cp -r --preserve=timestamps "${staging}/partitions/KIT-OUT/." /mnt/out/
       find /mnt/out -exec touch -h -d "1980-01-01T00:00:00Z" {} +

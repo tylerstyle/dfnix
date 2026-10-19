@@ -248,7 +248,7 @@ a filesystem that OS mounts without extra drivers:
 
 | # | Label | Filesystem, GPT type | Used on | Contents |
 | --- | --- | --- | --- | --- |
-| 1 | `KIT-WIN` | NTFS, basic data | Windows | dflive.exe (x64, arm64), WinPmem, Velociraptor collector, checklists |
+| 1 | `KIT-WIN` | exFAT, basic data | Windows | dflive.exe (x64, arm64), WinPmem, Velociraptor collector, checklists |
 | 2 | `KIT-MAC` | HFS+, Apple HFS+ | macOS, also recoveryOS | dflive (arm64, x86_64), the upstream `Fuji.dmg` (attached read-only), checklists |
 | 3 | `KIT-LNX` | ext4, Linux data | Linux, NAS, appliances | dflive and AVML (static musl via `pkgsStatic`, x86_64, aarch64), UAC with a static busybox in its `bin/` directory, checklists |
 | 4 | `KIT-OUT` | exFAT, basic data, rest of the stick | all three | empty; status, keys and small outputs |
