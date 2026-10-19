@@ -133,6 +133,23 @@ else
     KVM_OPTS=(-cpu max)
 fi
 
+# Detect GPU render node for hardware-accelerated 3D graphics (VirGL / Wayland)
+if [ -z "${RENDER_NODE+x}" ]; then
+    RENDER_NODE=""
+    for node in /dev/dri/renderD*; do
+        if [ -r "$node" ]; then
+            RENDER_NODE="$node"
+            break
+        fi
+    done
+fi
+
+if [ -n "$RENDER_NODE" ]; then
+    echo "[+] GPU Render Node: $RENDER_NODE"
+else
+    echo "[!] Warning: no GPU render node: niri needs GPU acceleration, so the desktop won't start; console and SSH work."
+fi
+
 EVIDENCE_IMG="${SCRIPT_DIR}/test-evidence.raw"
 TARGET_IMG="${SCRIPT_DIR}/test-target.raw"
 
@@ -202,30 +219,68 @@ if [ "$MODE" = "vm" ]; then
         exit 1
     fi
 
+    VM_QEMU_BIN=$(grep -E -o '/nix/store/[^ ]*-qemu-[^ ]*/bin/qemu-system-[^ ]*' "$VM_SCRIPT" 2>/dev/null | head -n 1 || true)
+    if [ -z "$VM_QEMU_BIN" ] || [ ! -x "$VM_QEMU_BIN" ]; then
+        VM_QEMU_BIN="qemu-system-x86_64"
+    fi
+
+    # Unset foreign library paths so the nixpkgs-built QEMU only loads its pinned libraries
+    unset LD_LIBRARY_PATH
+
+    # Set up Mesa environment matching the flake's QEMU to avoid host driver mismatch
+    if [ -n "$RENDER_NODE" ] && command -v nix >/dev/null 2>&1; then
+        FLAKE_MESA=$(nix build --no-link --print-out-paths --inputs-from "$SCRIPT_DIR" nixpkgs#mesa 2>/dev/null || true)
+        if [ -n "$FLAKE_MESA" ] && [ -d "$FLAKE_MESA" ]; then
+            export GBM_BACKENDS_PATH="$FLAKE_MESA/lib/gbm"
+            export LIBGL_DRIVERS_PATH="$FLAKE_MESA/lib/dri"
+            export __EGL_VENDOR_LIBRARY_FILENAMES="$FLAKE_MESA/share/glvnd/egl_vendor.d/50_mesa.json"
+        fi
+    fi
+
     EXTRA_QEMU_OPTS="${KVM_OPTS[*]}"
     EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -drive file=${EVIDENCE_IMG},format=raw,if=virtio,id=evidence"
     EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -drive file=${TARGET_IMG},format=raw,if=virtio,id=target"
     export QEMU_NET_OPTS="hostfwd=tcp::${SSH_PORT}-:22"
 
     # Detect hardware-accelerated 3D graphics (VirGL) for Wayland compositors (Niri)
-    GUI_GPU_OPTS=()
     if [ "$DISPLAY_MODE" = "gui" ]; then
-        if qemu-system-x86_64 -display gtk,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
+        GUI_GPU_OPTS=()
+        if "$VM_QEMU_BIN" -display gtk,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
             GUI_GPU_OPTS=(-device virtio-vga-gl -display "gtk,gl=on")
-        elif qemu-system-x86_64 -display sdl,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
+        elif "$VM_QEMU_BIN" -display sdl,gl=on -device virtio-vga-gl -help >/dev/null 2>&1; then
             GUI_GPU_OPTS=(-device virtio-vga-gl -display "sdl,gl=on")
         else
             GUI_GPU_OPTS=(-vga virtio)
         fi
         EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} ${GUI_GPU_OPTS[*]}"
     else
-        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -vga virtio -device usb-tablet"
-        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -spice port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on"
-        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} -display vnc=127.0.0.1:${VNC_PORT}"
+        HEADLESS_OPTS=()
+        if [ -n "$RENDER_NODE" ] && "$VM_QEMU_BIN" -display egl-headless -device virtio-vga-gl -help >/dev/null 2>&1; then
+            HEADLESS_OPTS=(-device virtio-vga-gl -display "egl-headless,rendernode=${RENDER_NODE}" -device usb-tablet)
+        else
+            HEADLESS_OPTS=(-vga virtio -device usb-tablet)
+        fi
+
+        if [ "$DISPLAY_MODE" = "spice" ]; then
+            HEADLESS_OPTS+=(-spice "port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on")
+        elif [ "$DISPLAY_MODE" = "vnc" ]; then
+            HEADLESS_OPTS+=(-vnc "127.0.0.1:${VNC_PORT}")
+        else
+            HEADLESS_OPTS+=(
+                -spice "port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on"
+                -vnc "127.0.0.1:${VNC_PORT}"
+            )
+        fi
+
+        EXTRA_QEMU_OPTS="${EXTRA_QEMU_OPTS} ${HEADLESS_OPTS[*]}"
 
         echo ">>> Headless access endpoints (bound to localhost for security):"
-        echo "    * Local SPICE: remote-viewer spice://127.0.0.1:${SPICE_PORT}"
-        echo "    * Local VNC  : vncviewer 127.0.0.1:$((5900 + VNC_PORT))"
+        if [ "$DISPLAY_MODE" = "spice" ] || [ "$DISPLAY_MODE" = "headless" ]; then
+            echo "    * Local SPICE: remote-viewer spice://127.0.0.1:${SPICE_PORT}"
+        fi
+        if [ "$DISPLAY_MODE" = "vnc" ] || [ "$DISPLAY_MODE" = "headless" ]; then
+            echo "    * Local VNC  : vncviewer 127.0.0.1:$((5900 + VNC_PORT))"
+        fi
         echo "    * Local SSH  : ssh -p ${SSH_PORT} nixos@localhost"
         echo "    * Remote SSH Tunnel (from client): ssh -L $((5900 + VNC_PORT)):127.0.0.1:$((5900 + VNC_PORT)) -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
         echo "------------------------------------------------------------------------"
@@ -274,20 +329,35 @@ if [ "$DISPLAY_MODE" = "gui" ]; then
         -device usb-tablet
     )
 else
-    VNC_DISPLAY_NUM=$((5900 + VNC_PORT))
-    QEMU_CMD+=(
-        -vga virtio
-        -usb
-        -device usb-tablet
-        -spice "port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on"
-        -display "vnc=127.0.0.1:${VNC_PORT}"
-    )
+    HEADLESS_OPTS=()
+    if [ -n "$RENDER_NODE" ] && qemu-system-x86_64 -display egl-headless -device virtio-vga-gl -help >/dev/null 2>&1; then
+        HEADLESS_OPTS=(-device virtio-vga-gl -display "egl-headless,rendernode=${RENDER_NODE}" -usb -device usb-tablet)
+    else
+        HEADLESS_OPTS=(-vga virtio -usb -device usb-tablet)
+    fi
+
+    if [ "$DISPLAY_MODE" = "spice" ]; then
+        HEADLESS_OPTS+=(-spice "port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on")
+    elif [ "$DISPLAY_MODE" = "vnc" ]; then
+        HEADLESS_OPTS+=(-vnc "127.0.0.1:${VNC_PORT}")
+    else
+        HEADLESS_OPTS+=(
+            -spice "port=${SPICE_PORT},addr=127.0.0.1,disable-ticketing=on"
+            -vnc "127.0.0.1:${VNC_PORT}"
+        )
+    fi
+
+    QEMU_CMD+=("${HEADLESS_OPTS[@]}")
 
     echo ">>> Headless access endpoints (bound to localhost for security):"
-    echo "    * Local SPICE: remote-viewer spice://127.0.0.1:${SPICE_PORT}"
-    echo "    * Local VNC  : vncviewer 127.0.0.1:${VNC_DISPLAY_NUM}"
+    if [ "$DISPLAY_MODE" = "spice" ] || [ "$DISPLAY_MODE" = "headless" ]; then
+        echo "    * Local SPICE: remote-viewer spice://127.0.0.1:${SPICE_PORT}"
+    fi
+    if [ "$DISPLAY_MODE" = "vnc" ] || [ "$DISPLAY_MODE" = "headless" ]; then
+        echo "    * Local VNC  : vncviewer 127.0.0.1:$((5900 + VNC_PORT))"
+    fi
     echo "    * Local SSH  : ssh -p ${SSH_PORT} nixos@localhost"
-    echo "    * Remote SSH Tunnel (from local client): ssh -L ${VNC_DISPLAY_NUM}:127.0.0.1:${VNC_DISPLAY_NUM} -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
+    echo "    * Remote SSH Tunnel (from client): ssh -L $((5900 + VNC_PORT)):127.0.0.1:$((5900 + VNC_PORT)) -L ${SPICE_PORT}:127.0.0.1:${SPICE_PORT} ${HOSTNAME_CURRENT}"
     echo "------------------------------------------------------------------------"
 fi
 
