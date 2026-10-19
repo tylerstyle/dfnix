@@ -75,11 +75,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792403739,
-        "narHash": "sha256-9i9oasztUsuJDbXT7fhOg8sOBsxZ2Ld9RWa3SFRz4+k=",
+        "lastModified": 1792407803,
+        "narHash": "sha256-Bs3P6t7coqS235dv/gkV4/dYOmrmr6oRWLl//ryxWKE=",
         "owner": "tylerstyle",
         "repo": "dflive",
-        "rev": "022081633e097385033b863216ebadb609b523d2",
+        "rev": "845dff3a32587acf8f1d68879034f184408d7aa4",
         "type": "github"
       },
       "original": {
