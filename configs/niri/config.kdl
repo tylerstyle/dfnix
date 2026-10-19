@@ -166,8 +166,14 @@ window-rule {
     match app-id=r#"^dfnix-guide$"#
     match title=r#".*Quick Start Guide.*"#
     open-floating true
-    default-column-width { proportion 0.65; }
+    default-column-width { fixed 800; }
     default-window-height { proportion 0.85; }
+}
+
+// Forensic tools launched in kitty with standard title: full width for minimum 80-column TUI layouts
+window-rule {
+    match title=r#"^(dfmount|dfnet|dfinfo|dfdisk|dfcollect|dfkit) - "#
+    default-column-width { proportion 1.0; }
 }
 
 window-rule {
@@ -238,6 +244,7 @@ binds {
     Mod+M           { spawn "kitty" "--title" "dfmount - Forensic Storage Manager" "sudo" "dfmount"; }
     Mod+N           { spawn "kitty" "--title" "dfnet - Forensic Network Operations" "sudo" "dfnet"; }
     Mod+I           { spawn "kitty" "--title" "dfinfo - Forensic System Triage" "sudo" "dfinfo"; }
+    Mod+A           { spawn "kitty" "--title" "dfcollect - Logical Acquisition" "sudo" "dfcollect"; }
     F1              { spawn "dfnix-guide"; }
     Mod+F1          { spawn "dfnix-guide"; }
     Mod+Question    { spawn "dfnix-guide"; }

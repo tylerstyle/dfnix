@@ -55,20 +55,22 @@ render_guide() {
 ${B_CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}
 ${B_CYAN}║              dfnix — Forensic Live Environment Quick Start Guide             ║${NC}
 ${B_CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}
-${DIM}Press [Esc], [q], or [Ctrl+C] to exit  •  Use Arrow Keys or [PageUp]/[PageDown] to scroll${NC}
+${DIM}Press [Esc], [q], or [Ctrl+C] to exit  •  Arrow Keys or [PgUp]/[PgDn] to scroll${NC}
 ${DIM}Press [/] followed by a word to search (e.g. /mount, /image, /niri)${NC}
 
 ${B_GREEN}■ THE 3-STEP FORENSIC WORKFLOW${NC}
 ────────────────────────────────────────────────────────────────────────────────
 In ${BOLD}dfnix${NC}, physical storage media is protected by a ${BOLD}5-layer write-blocker${NC}
-(kernel parameter neutralization, swap inactivation, udev blockdev ro-enforcement,
-and zero-journal replay). The standard field acquisition workflow follows 3 steps:
+(kernel parameter neutralization, swap inactivation, udev ro-enforcement,
+and zero-journal replay). Standard field acquisition workflow follows 3 steps:
 
-    ${B_CYAN}[ Step 1: Mount Target ]${NC}  ──►  ${B_BLUE}[ Step 2: System Triage ]${NC}  ──►  ${B_MAGENTA}[ Step 3: Image Disk ]${NC}
-        Launch ${BOLD}dfmount${NC}                 Launch ${BOLD}dfinfo${NC}                   Launch ${BOLD}dfdisk${NC}
-       (${YELLOW}Mod+M${NC} or Top Bar)             (${YELLOW}Mod+I${NC} or Top Bar)             (${YELLOW}Mod+D${NC} or Top Bar)
-   Unblock destination drive       Collect hardware specs        Acquire E01 / RAW image
-    under ${GREEN}/media/target${NC}             & export SHA-256 report       with hash verification
+  ${B_CYAN}[ Step 1: Storage ]${NC}  ──►  ${B_BLUE}[ Step 2: Triage ]${NC}  ──►   ${B_MAGENTA}[ Step 3: Acquire ]${NC}
+  ${BOLD}dfmount${NC} / ${BOLD}dfnet${NC}           ${BOLD}dfinfo${NC}                    ${BOLD}dfdisk${NC} / ${BOLD}dfcollect${NC}
+  ${YELLOW}Mod+M${NC} / ${YELLOW}Mod+N${NC}             ${YELLOW}Mod+I${NC}                     ${YELLOW}Mod+D${NC} / ${YELLOW}Mod+A${NC}
+  Mount target or share     Document hardware,        Image the disk, or
+  under ${GREEN}/media/target${NC}       report with SHA-256       collect warrant scope
+
+  ${DIM}The top bar has the same tools in this order, plus dfkit and Help.${NC}
 
 ════════════════════════════════════════════════════════════════════════════════
 ${B_YELLOW}1. HOW TO MOUNT STORAGE DRIVES (dfmount)${NC}
@@ -83,7 +85,7 @@ ${B_GREEN}▶ Mounting a Target / Destination Drive (To store images & reports):
   4. Choose ${GREEN}Mount Target (Read/Write)${NC}.
   5. The drive is unblocked and mounted at:
      ${BOLD}${GREEN}/media/target/<device-name>${NC}  (e.g. ${GREEN}/media/target/sdc1${NC})
-  6. All forensic tools (${BOLD}dfdisk${NC}, ${BOLD}dfinfo${NC}, X-Ways) can now write evidence files here.
+  6. All forensic tools (${BOLD}dfdisk${NC}, ${BOLD}dfinfo${NC}, X-Ways) can write evidence files here.
 
 ${B_BLUE}▶ Mounting an Evidence Drive (Strict Read-Only Examination):${NC}
   1. Select the suspect drive or partition in ${BOLD}dfmount${NC}.
@@ -99,16 +101,16 @@ ${B_YELLOW}▶ Unblocking Mechanics: Whole Disk vs. Partition:${NC}
   ${BOLD}dfmount${NC} automates this seamlessly with bi-directional unblocking:
   • ${BOLD}Mounting a partition (${CYAN}/dev/sdc1${NC}):${NC} Unblocks ${CYAN}sdc1${NC} ${BOLD}AND${NC} its parent disk ${CYAN}sdc${NC}.
   • ${BOLD}Unblocking a disk (${CYAN}/dev/sdc${NC}):${NC} Unblocks ${CYAN}sdc${NC} ${BOLD}AND${NC} all child partitions.
-  • ${BOLD}Raw Disk-to-Disk Clone:${NC} Unblock the parent disk (${CYAN}sudo dfmount unblock /dev/sdc${NC})
+  • ${BOLD}Raw Disk-to-Disk Clone:${NC} Unblock parent disk (${CYAN}sudo dfmount unblock /dev/sdc${NC})
     to allow ${BOLD}dfdisk${NC} direct sector-level write access without a filesystem.
-  • ${BOLD}Encrypted LUKS Targets:${NC} Unblock container partition, unlock via ${CYAN}sudo cryptsetup open${NC},
-    and mount the resulting ${CYAN}/dev/mapper/<name>${NC} into ${GREEN}/media/target${NC}.
+  • ${BOLD}Encrypted LUKS Targets:${NC} Unblock container partition, unlock via
+    ${CYAN}sudo cryptsetup open${NC}, and mount ${CYAN}/dev/mapper/<name>${NC} into ${GREEN}/media/target${NC}.
 
 ${DIM}CLI Shortcuts:
-  sudo dfmount target /dev/sdc1      # Mount target partition writeable (auto-unblocks parent)
-  sudo dfmount evidence /dev/sdb1    # Mount evidence partition write-blocked (zero journal replay)
-  sudo dfmount unblock /dev/sdc      # Unblock physical drive + all partitions for raw imaging
-  sudo dfmount unmount /dev/sdc1     # Safely flush buffers and unmount filesystem${NC}
+  sudo dfmount target /dev/sdc1      # Mount target RW (auto-unblocks parent)
+  sudo dfmount evidence /dev/sdb1    # Mount evidence RO (zero journal replay)
+  sudo dfmount unblock /dev/sdc      # Unblock drive + partitions for imaging
+  sudo dfmount unmount /dev/sdc1     # Flush buffers and unmount filesystem${NC}
 
 ════════════════════════════════════════════════════════════════════════════════
 ${B_YELLOW}2. HOW TO GET HARDWARE INFO & TRIAGE (dfinfo)${NC}
@@ -123,17 +125,17 @@ ${B_GREEN}▶ Interactive Hardware Triage:${NC}
     Motherboard revision, BIOS vendor, version, and release date.
   • ${BOLD}Storage Devices:${NC} Block device inventory (${CYAN}lsblk${NC}) showing transport,
     model, serial, and write-blocking status (${GREEN}RO=1${NC}).
-  • ${BOLD}Network Links:${NC} All physical & wireless interfaces with permanent MAC addresses.
+  • ${BOLD}Network Links:${NC} Physical & wireless interfaces with permanent MAC addresses.
   • ${BOLD}Peripherals:${NC} USB hardware devices (${CYAN}lsusb${NC}) and PCI controllers.
 
 ${B_GREEN}▶ Exporting Verifiable Forensic Triage Reports (.txt):${NC}
   • Inside ${BOLD}dfinfo${NC}, press ${YELLOW}[R]${NC} to generate a report, or pass ${CYAN}--report${NC}:
     ${CYAN}sudo dfinfo --report${NC}
   • The report is automatically saved to ${GREEN}/media/target${NC} (or ~/Desktop).
-  • A cryptographic ${BOLD}SHA-256 integrity hash${NC} is calculated and appended to the report.
+  • A cryptographic ${BOLD}SHA-256 hash${NC} is calculated and appended to the report.
 
 ${DIM}CLI Shortcuts:
-  sudo dfinfo --report               # Export report to /media/target with SHA-256
+  sudo dfinfo --report               # Export report to /media/target (SHA-256)
   sudo dfinfo --export /path/to/dir  # Export report to custom folder
   sudo dfinfo --stdout               # Stream plain-text report directly to pipe${NC}
 
@@ -148,7 +150,7 @@ ${B_GREEN}▶ Disk Acquisition Steps:${NC}
   2. ${BOLD}Select Source:${NC} Choose the suspect disk (e.g. ${CYAN}/dev/sdb${NC} or NVMe).
   3. ${BOLD}Choose Format:${NC}
      • ${B_CYAN}E01 (Expert Witness Format / EnCase):${NC} Industry standard. Compresses
-       data chunks, stores case metadata (examiner, case #), and embeds MD5/SHA-256.
+       data chunks, stores case metadata, and embeds MD5/SHA-256 checksums.
      • ${B_BLUE}RAW / DD:${NC} Exact sector-by-sector raw disk image.
      • ${B_RED}ddrescue (Damaged Media):${NC} Multi-phase rescue for drives with bad
        sectors, using a resume mapfile to avoid stressing failing hardware.
@@ -166,43 +168,44 @@ Windows are arranged in vertical columns that scroll horizontally.
 ${B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐${NC}
 ${B_CYAN}│ KEYBINDING             ACTION                                                │${NC}
 ${B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤${NC}
-│ ${YELLOW}F1${NC} or ${YELLOW}Mod + F1${NC}         ${WHITE}Toggle this Quick Start & Help Guide (Floating Window)${NC}  │
-│ ${YELLOW}Mod + Space${NC}             ${WHITE}Toggle Noctalia Application Launcher${NC}                  │
-│ ${YELLOW}Mod + S${NC}                 ${WHITE}Toggle Noctalia Control Center (Audio, Wi-Fi, Power)${NC}  │
-│ ${YELLOW}Mod + Return${NC} / ${YELLOW}Mod + T${NC}  ${WHITE}Open Kitty Terminal${NC}                                   │
-│ ${YELLOW}Mod + E${NC}                 ${WHITE}Open Dolphin File Manager${NC}                             │
-│ ${YELLOW}Mod + B${NC}                 ${WHITE}Open Firefox Web Browser${NC}                              │
-│ ${YELLOW}Mod + D${NC}                 ${WHITE}Launch dfdisk Forensic Imager (sudo)${NC}                  │
-│ ${YELLOW}Mod + M${NC}                 ${WHITE}Launch dfmount Storage Manager (sudo)${NC}                 │
-│ ${YELLOW}Mod + N${NC}                 ${WHITE}Launch dfnet Network Operations (sudo)${NC}                │
+│ ${YELLOW}F1${NC} or ${YELLOW}Mod + F1${NC}         ${WHITE}Toggle this Quick Start & Help Guide (Floating Window)${NC}│
+│ ${YELLOW}Mod + Space${NC}             ${WHITE}Toggle Noctalia Application Launcher${NC}                 │
+│ ${YELLOW}Mod + S${NC}                 ${WHITE}Toggle Noctalia Control Center (Audio, Wi-Fi, Power)${NC} │
+│ ${YELLOW}Mod + Return${NC} / ${YELLOW}Mod + T${NC}  ${WHITE}Open Kitty Terminal${NC}                                  │
+│ ${YELLOW}Mod + E${NC}                 ${WHITE}Open Dolphin File Manager${NC}                            │
+│ ${YELLOW}Mod + B${NC}                 ${WHITE}Open Firefox Web Browser${NC}                             │
+│ ${YELLOW}Mod + D${NC}                 ${WHITE}Launch dfdisk Forensic Imager (sudo)${NC}                 │
+│ ${YELLOW}Mod + M${NC}                 ${WHITE}Launch dfmount Storage Manager (sudo)${NC}                │
+│ ${YELLOW}Mod + N${NC}                 ${WHITE}Launch dfnet Network Operations (sudo)${NC}               │
 │ ${YELLOW}Mod + I${NC}                 ${WHITE}Launch dfinfo System Triage (sudo)${NC}                   │
-│ ${YELLOW}Mod + Shift + E${NC}         ${WHITE}Session Menu / Logout / Power Off${NC}                     │
+│ ${YELLOW}Mod + A${NC}                 ${WHITE}Launch dfcollect Logical Acquisition (sudo)${NC}          │
+│ ${YELLOW}Mod + Shift + E${NC}         ${WHITE}Session Menu / Logout / Power Off${NC}                    │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ ${B_GREEN}WORKSPACES (VERTICAL NAVIGATION)${NC}                                             │
-│ ${YELLOW}Mod + Down${NC} / ${YELLOW}Mod + J${NC}    ${WHITE}Navigate to workspace below${NC}                           │
-│ ${YELLOW}Mod + Up${NC}   / ${YELLOW}Mod + K${NC}    ${WHITE}Navigate to workspace above${NC}                           │
+│ ${YELLOW}Mod + Down${NC} / ${YELLOW}Mod + J${NC}    ${WHITE}Navigate to workspace below${NC}                          │
+│ ${YELLOW}Mod + Up${NC}   / ${YELLOW}Mod + K${NC}    ${WHITE}Navigate to workspace above${NC}                          │
 │ ${YELLOW}Mod + Shift + Down/J${NC}   ${WHITE}Move active column to workspace below${NC}                 │
 │ ${YELLOW}Mod + Shift + Up/K${NC}     ${WHITE}Move active column to workspace above${NC}                 │
 │ ${YELLOW}Mod + 1 .. 5${NC}           ${WHITE}Switch directly to workspace 1 through 5${NC}              │
 │ ${YELLOW}Mod + Shift + 1 .. 5${NC}   ${WHITE}Move active column to workspace 1 through 5${NC}           │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ${B_BLUE}COLUMNS & HORIZONTAL SCROLLING${NC}                                              │
-│ ${YELLOW}Mod + Left${NC} / ${YELLOW}Mod + H${NC}    ${WHITE}Focus column to the left${NC}                              │
-│ ${YELLOW}Mod + Right${NC} / ${YELLOW}Mod + L${NC}   ${WHITE}Focus column to the right${NC}                             │
+│ ${B_BLUE}COLUMNS & HORIZONTAL SCROLLING${NC}                                               │
+│ ${YELLOW}Mod + Left${NC} / ${YELLOW}Mod + H${NC}    ${WHITE}Focus column to the left${NC}                             │
+│ ${YELLOW}Mod + Right${NC} / ${YELLOW}Mod + L${NC}   ${WHITE}Focus column to the right${NC}                            │
 │ ${YELLOW}Mod + Shift + Left/H${NC}   ${WHITE}Move active column to the left${NC}                        │
 │ ${YELLOW}Mod + Shift + Right/L${NC}  ${WHITE}Move active column to the right${NC}                       │
-│ ${YELLOW}Mod + C${NC}                 ${WHITE}Center active column on screen${NC}                        │
-│ ${YELLOW}Mod + R${NC}                 ${WHITE}Switch column preset width (33% ──► 50% ──► 66% ──► 100%)${NC}│
-│ ${YELLOW}Mod + F${NC}                 ${WHITE}Maximize column width to fill screen${NC}                  │
-│ ${YELLOW}Mod + Shift + F${NC}         ${WHITE}Toggle fullscreen window${NC}                              │
+│ ${YELLOW}Mod + C${NC}                 ${WHITE}Center active column on screen${NC}                       │
+│ ${YELLOW}Mod + R${NC}                 ${WHITE}Cycle column width (33/50/66/100%)${NC}                   │
+│ ${YELLOW}Mod + F${NC}                 ${WHITE}Maximize column width to fill screen${NC}                 │
+│ ${YELLOW}Mod + Shift + F${NC}         ${WHITE}Toggle fullscreen window${NC}                             │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ${B_MAGENTA}WINDOWS & FLOATING${NC}                                                         │
+│ ${B_MAGENTA}WINDOWS & FLOATING${NC}                                                           │
 │ ${YELLOW}Mod + Page_Down${NC}         ${WHITE}Focus window below (in stacked column)${NC}               │
 │ ${YELLOW}Mod + Page_Up${NC}           ${WHITE}Focus window above (in stacked column)${NC}               │
 │ ${YELLOW}Mod + Shift + PgDown${NC}   ${WHITE}Move window down within column${NC}                        │
 │ ${YELLOW}Mod + Shift + PgUp${NC}     ${WHITE}Move window up within column${NC}                          │
-│ ${YELLOW}Mod + W${NC}                 ${WHITE}Toggle floating mode for active window${NC}                │
-│ ${YELLOW}Mod + Q${NC}                 ${WHITE}Close active window${NC}                                   │
+│ ${YELLOW}Mod + W${NC}                 ${WHITE}Toggle floating mode for active window${NC}               │
+│ ${YELLOW}Mod + Q${NC}                 ${WHITE}Close active window${NC}                                  │
 ${B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘${NC}
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -220,11 +223,11 @@ ${B_YELLOW}5. ADVANCED TOOLS & CAPABILITIES${NC}
   receiving incoming raw disk dumps over netcat/socat.
 
 • ${BOLD}Logical Acquisition (dfcollect):${NC}
-  ${CYAN}sudo dfcollect${NC} opens the TUI: acquire only what a warrant covers into a
-  verifiable container: files from a read-only mount (dfmount evidence, dfnet
-  share), mailboxes (IMAP, M365, Gmail), M365 logs, cloud, databases and
-  provider packages. Preview the scope before anything is copied (M365 logs
-  have no preview); verify collections afterwards.
+  Launch with ${YELLOW}Mod+A${NC}, top bar, or ${CYAN}sudo dfcollect${NC}. Opens the TUI: acquire
+  only what a warrant covers into a verifiable container: files from a read-only
+  mount (dfmount evidence, dfnet share), mailboxes (IMAP, M365, Gmail), M365
+  logs, cloud, databases and provider packages. Preview the scope before
+  anything is copied (M365 logs have no preview); verify collections afterwards.
   The same modes on the command line: ${CYAN}dfcollect <mode> --help${NC}.
   Playbooks for each case type: ${GREEN}/etc/dfnix/playbooks${NC}
 
@@ -238,7 +241,7 @@ ${B_YELLOW}5. ADVANCED TOOLS & CAPABILITIES${NC}
   ${CYAN}man ewfacquire${NC}                  # View specific manual
 
 ────────────────────────────────────────────────────────────────────────────────
-${DIM}Tip: You can redisplay this guide anytime by hitting [F1] or clicking [Help] on the top bar.${NC}
+${DIM}Tip: Redisplay this guide anytime with [F1] or [Help] on the top bar.${NC}
 EOF
 }
 

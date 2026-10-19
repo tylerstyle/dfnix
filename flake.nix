@@ -222,6 +222,10 @@
         {
           cftt = import ./tests/cftt { inherit pkgs; };
           fieldkit = import ./tests/fieldkit { inherit pkgs; };
+          desktop-commands = import ./tests/desktop-commands {
+            inherit pkgs;
+            nixosConfig = self.nixosConfigurations.df-forensics-iso;
+          };
         }
       );
 

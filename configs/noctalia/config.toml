@@ -15,7 +15,7 @@ corner_radius_scale = 1.0
     compact = false
     show_icons = true
     sort_by_usage = true
-    pinned = [ "dfnix-guide.desktop", "dfdisk.desktop", "dfmount.desktop", "dfnet.desktop", "dfinfo.desktop", "kitty.desktop", "dolphin.desktop" ]
+    pinned = [ "dfnix-guide.desktop", "dfmount.desktop", "dfnet.desktop", "dfinfo.desktop", "dfdisk.desktop", "dfcollect.desktop", "dfkit.desktop", "kitty.desktop", "dolphin.desktop" ]
 
     [shell.panel]
     transparency_mode = "soft"
@@ -33,17 +33,8 @@ order = [ "default" ]
     background_opacity = 0.65
     contact_shadow = true
     start = [ "launcher", "workspaces" ]
-    center = [ "dfdisk_btn", "dfmount_btn", "dfnet_btn", "dfinfo_btn", "guide_btn" ]
+    center = [ "dfmount_btn", "dfnet_btn", "spacer_1", "dfinfo_btn", "spacer_2", "dfdisk_btn", "dfcollect_btn", "spacer_3", "dfkit_btn", "guide_btn" ]
     end = [ "clock", "tray", "volume", "brightness", "battery", "control-center" ]
-
-[widget.dfdisk_btn]
-type = "custom_button"
-glyph = "disc"
-label = "dfdisk"
-tooltip = "Launch dfdisk Forensic Imager (Mod+D)"
-
-    [widget.dfdisk_btn.actions]
-    left = "exec kitty --title 'dfdisk - Forensic Imager' sudo dfdisk"
 
 [widget.dfmount_btn]
 type = "custom_button"
@@ -63,6 +54,10 @@ tooltip = "Launch dfnet Forensic Network Operations (Mod+N)"
     [widget.dfnet_btn.actions]
     left = "exec kitty --title 'dfnet - Forensic Network Operations' sudo dfnet"
 
+[widget.spacer_1]
+type = "spacer"
+length = 16
+
 [widget.dfinfo_btn]
 type = "custom_button"
 glyph = "device-analytics"
@@ -71,6 +66,41 @@ tooltip = "Launch dfinfo Forensic System Triage & Fastfetch (Mod+I)"
 
     [widget.dfinfo_btn.actions]
     left = "exec kitty --title 'dfinfo - Forensic System Triage' sudo dfinfo"
+
+[widget.spacer_2]
+type = "spacer"
+length = 16
+
+[widget.dfdisk_btn]
+type = "custom_button"
+glyph = "disc"
+label = "dfdisk"
+tooltip = "Launch dfdisk Forensic Imager (Mod+D)"
+
+    [widget.dfdisk_btn.actions]
+    left = "exec kitty --title 'dfdisk - Forensic Imager' sudo dfdisk"
+
+[widget.dfcollect_btn]
+type = "custom_button"
+glyph = "folder-search"
+label = "dfcollect"
+tooltip = "Launch dfcollect Logical Acquisition (Mod+A)"
+
+    [widget.dfcollect_btn.actions]
+    left = "exec kitty --title 'dfcollect - Logical Acquisition' sudo dfcollect"
+
+[widget.spacer_3]
+type = "spacer"
+length = 16
+
+[widget.dfkit_btn]
+type = "custom_button"
+glyph = "usb"
+label = "dfkit"
+tooltip = "Write and verify field-kit sticks (dfkit)"
+
+    [widget.dfkit_btn.actions]
+    left = "exec kitty --title 'dfkit - Field-Kit Sticks' dfkit-shell"
 
 [widget.guide_btn]
 type = "custom_button"
