@@ -14,6 +14,7 @@
   virtualisation.vmVariant = { pkgs, ... }: {
     virtualisation.memorySize = 8192; # 8 GiB RAM
     virtualisation.cores = 4;         # 4 CPU cores
+    virtualisation.diskImage = null;  # tmpfs root: write-blocker locks virtual block devices (vd*)
     virtualisation.efi.OVMF = pkgs.OVMF // { systemManagementModeRequired = false; };
     boot.kernelParams = lib.mkVMOverride [ "panic=10" "noresume" "nohibernate" ]; # Skip copytoram in VM closure
     boot.initrd.systemd.services.copytoram.enable = false;
