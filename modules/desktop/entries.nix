@@ -14,8 +14,14 @@ let
       Target USB stick must be write-unblocked first:
         sudo dfmount unblock /dev/sdX
 
-      Write field-kit stick:
+      Write field-kit stick (fast, no zeroing):
         sudo dfkit write /etc/dfnix/fieldkit /dev/sdX --confirm sdX
+
+      Write stick with full target wipe (zeroes KIT-OUT):
+        sudo dfkit write /etc/dfnix/fieldkit /dev/sdX --wipe --confirm sdX
+
+      Write Windows-focused stick (KIT-WIN and KIT-OUT only):
+        sudo dfkit write /etc/dfnix/fieldkit /dev/sdX --only win --confirm sdX
 
       Verify field-kit stick:
         sudo dfkit verify /dev/sdX

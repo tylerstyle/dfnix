@@ -2,7 +2,8 @@
 
 Use this checklist when a Windows computer is found running and unlocked at the
 scene. All tools run directly from the `KIT-WIN` partition of the `dfnix`
-field-kit stick (`D:\` in the examples below):
+field-kit stick (`D:\` in the examples below; Windows assigns drive letters
+dynamically, so verify the volume label `KIT-WIN` in Explorer or `mountvol`):
 
 - `D:\dflive.exe` — live companion (`status`, `keys`, `mem`, `state`, `send`).
   It is an `x86_64` console binary that links only Windows system DLLs; on
@@ -13,13 +14,14 @@ field-kit stick (`D:\` in the examples below):
 - `D:\velociraptor\` — Velociraptor offline collectors (`amd64` and `arm64`) and
   `collector-spec.yaml`.
 
-Write small scene, key, state, and footprint records to `KIT-OUT` (`E:\`) and
-memory, volume, or artifact dumps to a dedicated external target drive (`F:\`),
-or stream them to `dfnix` over the network — never write to `C:\`. Pass
-`--log E:\case\dflive.jsonl` on every `dflive.exe` run: each run appends one
-JSON line recording `dflive.exe`'s own SHA-256, whether `D:\KIT-MANIFEST.sha256`
-lists it with that hash, every child command and exit code, every file written
-with its SHA-256, and the outcome.
+Write small scene, key, state, and footprint records to `KIT-OUT` (`E:\` in the
+examples below; adjust to match Windows' assigned drive letter for the `KIT-OUT`
+volume) and memory, volume, or artifact dumps to a dedicated external target
+drive (`F:\`), or stream them to `dfnix` over the network — never write to
+`C:\`. Pass `--log E:\case\dflive.jsonl` on every `dflive.exe` run: each run
+appends one JSON line recording `dflive.exe`'s own SHA-256, whether
+`D:\KIT-MANIFEST.sha256` lists it with that hash, every child command and exit
+code, every file written with its SHA-256, and the outcome.
 
 > **Footprint & Warnings**
 > - **USB traces:** Plugging in the stick writes device entries to

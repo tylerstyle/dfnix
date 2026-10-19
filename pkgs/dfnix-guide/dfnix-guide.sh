@@ -233,6 +233,9 @@ ${B_YELLOW}5. ADVANCED TOOLS & CAPABILITIES${NC}
 
 • ${BOLD}Field-Kit Sticks (dfkit):${NC}
   ${CYAN}sudo dfkit write /etc/dfnix/fieldkit /dev/sdX --confirm sdX${NC}
+  ${CYAN}sudo dfkit write /etc/dfnix/fieldkit /dev/sdX --only win --confirm sdX${NC}
+  ${CYAN}sudo dfkit write /etc/dfnix/fieldkit /dev/sdX --wipe --confirm sdX${NC}
+  ${DIM}--only win: KIT-WIN and KIT-OUT only. --wipe: zero KIT-OUT (from other case).${NC}
   ${CYAN}sudo dfkit verify /dev/sdX${NC}       # also after the stick was in use
 
 • ${BOLD}Air-Gapped Offline Documentation:${NC}
