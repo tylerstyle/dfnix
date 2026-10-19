@@ -27,11 +27,11 @@
     "dfcore": {
       "flake": false,
       "locked": {
-        "lastModified": 1792160581,
-        "narHash": "sha256-v6eQ5kPuJdhDVS4PR5a/W+wgrqa6X8tbVmf850Y6UGs=",
+        "lastModified": 1792422363,
+        "narHash": "sha256-3YuDlCcEZkLknfkEpHKLDKEQ0KIzMLY3wE0gEB96IgY=",
         "owner": "tylerstyle",
         "repo": "dfcore",
-        "rev": "52d6ab2dcb9f2068f31970b4703dc78cf345f18d",
+        "rev": "d2d9fcecf150965cbce075366cf15b2813a77a14",
         "type": "github"
       },
       "original": {
@@ -126,11 +126,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792260077,
-        "narHash": "sha256-vSR47ZGcM0Aj64J2H5Msk4U1Eh1Bw+lYocNBsJVQ9uI=",
+        "lastModified": 1792422360,
+        "narHash": "sha256-pyGPBxgrs5HB+vjXf59Cp/rNTR3EousH3gyOryXTBME=",
         "owner": "tylerstyle",
         "repo": "dfnet",
-        "rev": "3e27e37f0f20206d3d91c77fb296ed5f704933d1",
+        "rev": "ca72e6904c012c2bc5200b7b4fc6ba96ebd55475",
         "type": "github"
       },
       "original": {

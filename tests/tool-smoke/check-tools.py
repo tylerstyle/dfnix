@@ -38,17 +38,6 @@ FAIL_RE = re.compile("|".join(FAIL_PATTERNS))
 
 # Explicit skip list keyed by "<pname>/<binary>" with justified reasons:
 SKIP_LIST = {
-    # dfnet inner wrapper script using #!/usr/bin/env bash
-    "dfnet/dfnet-cli": (
-        "#!/usr/bin/env bash inner script; works on the ISO, which has /usr/bin/env, "
-        "not in the Nix sandbox. Fix in the dfnet repo's package.nix: bash in buildInputs, "
-        "so patchShebangs rewrites it."
-    ),
-    "dfnet/df-net": (
-        "Symlink to dfnet-cli (#!/usr/bin/env bash inner script; works on the ISO, "
-        "which has /usr/bin/env, not in the Nix sandbox)."
-    ),
-
     # Zeek cluster & compiler tools
     "zeek/zeekctl": "Zeek cluster manager; requires cluster topology configuration (zeekctl.cfg).",
     "zeek/zeek-client": "Zeek controller client; requires active daemon and websocket module.",
