@@ -52,7 +52,6 @@ let
     "dfinfo.desktop" = "dfinfo.desktop";
     "dfkit.desktop" = "dfkit.desktop";
     "xways.desktop" = "xways.desktop";
-    "xways-desktop.desktop" = "xways-desktop.desktop";
     "guymager.desktop" = "guymager.desktop";
   };
 

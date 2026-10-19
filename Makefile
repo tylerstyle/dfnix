@@ -2,7 +2,7 @@
 # Makefile for dfnix (NixOS Live ISO & Appliance Build System)
 # ==============================================================================
 
-.PHONY: help iso vm vmware virtualbox check test-cftt test-tools test-qemu test-vm test-headless flash clean
+.PHONY: help iso vm vmware virtualbox check test-cftt test-tools test-xways test-qemu test-vm test-headless flash clean
 
 help:
 	@echo "dfnix Build System"
@@ -17,10 +17,10 @@ help:
 	@echo "Virtualization & Testing Targets:"
 	@echo "  make test-cftt      Write-blocking regression test (KVM)"
 	@echo "  make test-tools     Run forensic tools startup smoke check"
+	@echo "  make test-xways     Run X-Ways launcher VM test (KVM)"
 	@echo "  make test-qemu      Run built ISO in QEMU (auto GUI on desktop, SPICE/VNC on headless server)"
 	@echo "  make test-vm        Run instant VM for rapid prototyping (auto GUI or headless)"
 	@echo "  make test-headless  Force headless QEMU with SPICE (5930), VNC (5901), & SSH (2222)"
-	@echo "  make test-cftt      Write-blocking regression test (KVM)"
 	@echo ""
 	@echo "  Builds use the inputs pinned in flake.lock. LOCAL_TOOLS=1 builds against the committed"
 	@echo "  HEAD of ../dfcore, ../dfdisk, ../dfmount, ../dfnet, ../dflive and ../dfcollect"
@@ -88,6 +88,10 @@ test-cftt:
 test-tools:
 	@echo "==> Running forensic tools startup smoke check..."
 	nix build -L .#checks.x86_64-linux.tool-smoke $(TOOL_OVERRIDES) -o result-tool-smoke
+
+test-xways:
+	@echo "==> Running X-Ways launcher VM test..."
+	nix build -L .#checks.x86_64-linux.xways $(TOOL_OVERRIDES) -o result-xways
 
 test-qemu:
 	@./scripts/run-vm.sh --iso
