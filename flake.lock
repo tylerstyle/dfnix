@@ -99,11 +99,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792260077,
-        "narHash": "sha256-4MD0rACHM/sSljbcr+BSKeqw1oXXTMDc1eeuPRXrQWQ=",
+        "lastModified": 1792430601,
+        "narHash": "sha256-jQx4yzn3ozsXY+v4GG8jt+sabMonXm1GrPhCayJbXiE=",
         "owner": "tylerstyle",
         "repo": "dfmount",
-        "rev": "63296153c30360066da2286ad0eadc93ce3bc721",
+        "rev": "c801fc025d14206ac16d55a06cb9d99ff92dd813",
         "type": "github"
       },
       "original": {
@@ -126,11 +126,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792422360,
-        "narHash": "sha256-pyGPBxgrs5HB+vjXf59Cp/rNTR3EousH3gyOryXTBME=",
+        "lastModified": 1792430601,
+        "narHash": "sha256-W9aVapZAI91E4AsWV9hEO3HX2HlA2uNnG0C9JbOlE/o=",
         "owner": "tylerstyle",
         "repo": "dfnet",
-        "rev": "ca72e6904c012c2bc5200b7b4fc6ba96ebd55475",
+        "rev": "3bcec5fa9402d2b65d6a75debd88de01e914ff76",
         "type": "github"
       },
       "original": {
