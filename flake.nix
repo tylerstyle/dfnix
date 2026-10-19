@@ -103,6 +103,9 @@
         # Windows Registry parser
         regripper = final.callPackage ./pkgs/regripper { };
 
+        # libyal: Volume Shadow Copies, APFS (incl. encrypted) and FileVault
+        inherit (final.callPackage ./pkgs/libyal { }) libvshadow libfsapfs libfvde;
+
         # Field-kit third-party packages (for the multi-OS field-kit USB stick)
         uac = final.callPackage ./pkgs/uac { };
         uac-kit = final.callPackage ./pkgs/uac {
@@ -183,6 +186,9 @@
             dfnix-guide
             dwarf2json
             regripper
+            libvshadow
+            libfsapfs
+            libfvde
             dfnix-session-chooser
             uac
             uac-kit
