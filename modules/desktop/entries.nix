@@ -62,11 +62,11 @@ in
       name = "dfnet";
       desktopName = "dfnet Network Triage";
       genericName = "Forensic Network Operations";
-      comment = "MAC spoofing, static IP setup (nmtui), network share mounting, and raw disk reception";
+      comment = "MAC spoofing, static IP setup (nmtui), network share mounting, raw disk reception, and a Wi-Fi hotspot";
       exec = "kitty --title \"dfnet - Forensic Network Operations\" sudo dfnet";
       icon = "network-workgroup";
       categories = [ "System" "Network" ];
-      keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" ];
+      keywords = [ "forensics" "network" "macchanger" "nmtui" "smb" "nfs" "hotspot" ];
     })
     (pkgs.makeDesktopItem {
       name = "dfcollect";

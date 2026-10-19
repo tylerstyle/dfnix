@@ -71,6 +71,11 @@ let
 
   providersJson = builtins.toFile "providers.json" (builtins.toJSON providersStatus);
 
+  # The launchers above are the only ones: a df tool that ships its own
+  # share/applications file of the same name would shadow one of the two in
+  # the system profile. Built for real (not by name), so their files can be read.
+  toolPackages = with sysPkgs; [ dfdisk dfmount dfnet dfcollect dfkit dfinfo dfnix-guide ];
+
   checkerScript = ./check-desktop-commands.py;
   configToml = ../../configs/noctalia/config.toml;
   configKdl = ../../configs/niri/config.kdl;
@@ -92,7 +97,8 @@ runCommand "check-desktop-commands"
       --providers "${providersJson}" \
       --toml "${configToml}" \
       --kdl "${configKdl}" \
-      --desktop-dir "${desktopItemsDir}"
+      --desktop-dir "${desktopItemsDir}" \
+      --tool-packages ${lib.escapeShellArgs (map toString toolPackages)}
 
     mkdir -p $out
     echo "ok" > $out/success

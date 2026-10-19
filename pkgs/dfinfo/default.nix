@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation {
   pname = "dfinfo";
-  version = "0.1.0";
+  version = "0.1.1";
   src = ./.;
 
   nativeBuildInputs = [ makeWrapper ];
 
   installPhase = ''
-    mkdir -p $out/bin $out/share/applications
+    mkdir -p $out/bin
     cp dfinfo.sh $out/bin/dfinfo
     chmod +x $out/bin/dfinfo
 
@@ -28,22 +28,6 @@ stdenv.mkDerivation {
     ln -s $out/bin/dfinfo $out/bin/dftriage
     ln -s $out/bin/dfinfo $out/bin/df-info
     ln -s $out/bin/dfinfo $out/bin/df-triage
-
-    # Desktop entry
-    cat > $out/share/applications/dfinfo.desktop <<EOF
-[Desktop Entry]
-Version=1.0
-Name=dfinfo Forensic Triage
-GenericName=Forensic System Triage & Fastfetch
-Comment=System hardware triage, fastfetch overview, and concise forensic documentation
-Exec=kitty --title "dfinfo - Forensic System Triage" sudo dfinfo
-Icon=utilities-system-monitor
-Terminal=false
-Type=Application
-Categories=System;Utility;
-Keywords=forensics;triage;fastfetch;system;hardware;evidence;
-StartupNotify=true
-EOF
   '';
 
   meta = with lib; {

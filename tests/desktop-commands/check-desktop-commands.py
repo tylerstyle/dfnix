@@ -139,6 +139,12 @@ def main():
         required=False,
         help="Path to directory containing installed .desktop files",
     )
+    parser.add_argument(
+        "--tool-packages",
+        nargs="*",
+        default=[],
+        help="df tool packages that must not ship a launcher dfnix already installs",
+    )
 
     args = parser.parse_args()
 
@@ -213,10 +219,12 @@ def main():
             continue
 
     # 3. Installed desktop files in desktop-dir (linkFarm)
+    launchers = set()
     if args.desktop_dir and os.path.isdir(args.desktop_dir):
         for root, _, files in os.walk(args.desktop_dir, followlinks=True):
             for file in sorted(files):
                 if file.endswith(".desktop"):
+                    launchers.add(file)
                     desktop_file = os.path.join(root, file)
                     with open(desktop_file, "r", encoding="utf-8", errors="replace") as f:
                         for line in f:
@@ -225,6 +233,16 @@ def main():
                                 exec_str = line[5:].strip()
                                 for cmd in resolve_command_string(exec_str):
                                     check_item(cmd, f"desktop file {file} Exec=")
+
+    # 4. Each launcher exists once: no df tool ships a copy of a dfnix launcher
+    for pkg in args.tool_packages:
+        apps = os.path.join(pkg, "share", "applications")
+        if os.path.isdir(apps):
+            for file in sorted(os.listdir(apps)):
+                if file in launchers:
+                    errors.append(
+                        f"[-] DUPLICATE LAUNCHER: '{file}' is installed by dfnix and again by {pkg}."
+                    )
 
     print(f"==> Checked {len(checked_items)} desktop commands and pinned IDs:")
     for name, src in sorted(set(checked_items)):
