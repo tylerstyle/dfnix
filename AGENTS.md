@@ -79,6 +79,16 @@ shellcheck pkgs/*/*.sh modules/*/*.sh scripts/*.sh
 
 ### In Rust Tools (`dfdisk`, `dfmount`, `dfnet`, `dflive`, `dfcollect`, `dfcore`):
 ```bash
-cargo check --manifest-path /home/df/git/<tool>/Cargo.toml
-cargo test --manifest-path /home/df/git/<tool>/Cargo.toml
+cargo check --manifest-path ~/git/<tool>/Cargo.toml
+cargo test --manifest-path ~/git/<tool>/Cargo.toml
 ```
+
+---
+
+## Compact Instructions
+
+When compacting this conversation, always preserve:
+- Which repositories (`dfnix` vs. sibling tool repos) and flake inputs were touched
+- Exact build/verification commands run (`make check`, `make test-cftt`, `LOCAL_TOOLS=1`) and outcomes
+- Any forensic safety invariants or boot/hardware quirks discovered
+- Open TODOs and release/push order dependencies (`dfcore` -> `dflive` -> `dfdisk`/`dfmount` -> `dfnet` -> `dfcollect` -> `dfnix`)
