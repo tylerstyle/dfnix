@@ -12,6 +12,9 @@ result-*
 *~
 .DS_Store
 
+# Local AI-agent settings (per-machine permissions)
+.claude/
+
 # Temporary forensic test images & media
 scratch/
 test-*.raw
