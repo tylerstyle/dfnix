@@ -1,0 +1,32 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "nix"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    ignore:
+      # Internal df* tool inputs are bumped deliberately alongside tool releases
+      - dependency-name: "dfcore"
+      - dependency-name: "dfdisk"
+      - dependency-name: "dfmount"
+      - dependency-name: "dfnet"
+      - dependency-name: "dflive"
+      - dependency-name: "dfcollect"
+    groups:
+      nix-inputs:
+        patterns:
+          - "*"

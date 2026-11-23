@@ -5,6 +5,10 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   nix-flake-check:
@@ -12,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -23,23 +27,29 @@ jobs:
           df -h /
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v14
-
-      - name: Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v8
+        uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
 
       - name: Check Flake Schema & System Assertions
         run: nix flake check --show-trace
 
-      - name: Validate Live ISO Derivation
-        run: nix eval .#packages.x86_64-linux.iso.drvPath
-
-      - name: Validate Prototyping VM Derivation
-        run: nix eval .#packages.x86_64-linux.vm.drvPath
+      - name: Validate System Image Derivations
+        run: |
+          for img in iso vm vmware virtualbox; do
+            echo "Evaluating derivation for $img..."
+            nix eval ".#packages.x86_64-linux.${img}.drvPath"
+          done
 
       - name: Validate Custom Forensic Packages
         run: |
-          for pkg in dfdisk dfmount dfnet dfinfo dfnix-guide dwarf2json regripper; do
+          for pkg in \
+            dfcore dfdisk dfmount dfnet dfcollect dfkit \
+            dfinfo dfnix-guide dfnix-session-chooser \
+            dwarf2json regripper libvshadow libfsapfs libfvde \
+            uac uac-kit velociraptor winpmem fuji fieldkit; do
             echo "Evaluating derivation for $pkg..."
             nix eval ".#packages.x86_64-linux.${pkg}.drvPath"
           done
@@ -49,23 +59,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v14
+        uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
 
-      - name: Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v8
-
-      - name: Run ShellCheck on Forensic Scripts
-        run: |
-          nix run nixpkgs#shellcheck -- \
-            pkgs/dfinfo/dfinfo.sh \
-            pkgs/dfnix-guide/dfnix-guide.sh \
-            scripts/flash.sh \
-            scripts/run-vm.sh
-
-      - name: Run Make Check (Syntax & Evaluator Verification)
+      - name: Run Make Check (Flake Eval, ShellCheck & Flakeless Entrypoint)
         run: make check LOCAL_TOOLS=0

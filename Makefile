@@ -72,7 +72,7 @@ check:
 	@echo "==> Running flake evaluation checks..."
 	nix flake check --no-build $(TOOL_OVERRIDES)
 	@echo "==> Checking shell scripts..."
-	nix shell nixpkgs#shellcheck -c shellcheck scripts/*.sh pkgs/*/*.sh tests/cftt/fixtures.sh
+	nix shell --inputs-from . nixpkgs#shellcheck -c shellcheck scripts/*.sh pkgs/*/*.sh tests/cftt/fixtures.sh
 	@echo "==> Evaluating flakeless entry point (flake-compat)..."
 	@if grep -q '"dfcore"' flake.lock; then \
 		nix-instantiate --eval -E '(import ./default.nix {}).system.drvPath'; \
