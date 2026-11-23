@@ -41,9 +41,9 @@ in
 
   libfsapfs = mkLibyal {
     pname = "libfsapfs";
-    version = "20260921";
+    version = "20261030";
     stage = "experimental";
-    hash = "sha256-40Zv+D8M95zoMAcN5QbrVmG9a6JU4UY4PaPPEnnZW1o=";
+    hash = "sha256-xyfSMZevPyyeOWGFRcRxk2ZjOmZnJbg74qMhSkihHfU=";
     description = "Apple File System (APFS), including encrypted volumes: fsapfsinfo, fsapfsmount";
   };
 

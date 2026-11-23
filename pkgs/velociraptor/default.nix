@@ -10,23 +10,23 @@
 let
   # IMPORTANT: Keep `rev` in sync with `version` (must be the commit SHA of tag `v${version}`)
   # so the `-X ...config.commit_hash` ldflag reports the matching release commit.
-  rev = "7d287b0b988b35657e1b401f7b2ffebaf60dbcae";
+  rev = "f48c1eb2115a412d6528bf7dc6b27c002d45468c";
   isCrossTarget =
     goos != stdenv.buildPlatform.go.GOOS || goarch != stdenv.buildPlatform.go.GOARCH;
   exeSuffix = lib.optionalString (goos == "windows") ".exe";
 in
 buildGoModule (finalAttrs: {
   pname = "velociraptor" + lib.optionalString isCrossTarget "-${goos}-${goarch}";
-  version = "0.77.3";
+  version = "0.77.4";
 
   src = fetchFromGitHub {
     owner = "Velocidex";
     repo = "velociraptor";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-L1OFEgs5QWdu6vh3bDulH+C8wkwR2vBkVQ7l4ojX1T0=";
+    hash = "sha256-OO3iry/TtdFgYxMxvLDJkMZi6+fJxek9m3hvUww8d+c=";
   };
 
-  vendorHash = "sha256-ebzPsM8Vfw0PPColLy6LjtmmTDVBNTyLc/SX4rYQxBM=";
+  vendorHash = "sha256-eGm752qwtF1sMOjVSDoOx7UysAG5rGfZvsNaaRxVX7A=";
   proxyVendor = true;
 
   overrideModAttrs = _: {
@@ -46,6 +46,7 @@ buildGoModule (finalAttrs: {
 
   # Mirror upstream magefile.go base_tags + LinuxBare / WindowsBare extra_tags.
   tags = [
+    "velomain"
     "server_vql"
     "extras"
     "disable_grpc_modules"

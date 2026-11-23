@@ -2,7 +2,7 @@
 
 buildGoModule rec {
   pname = "dwarf2json";
-  version = "0.8.0";
+  version = "0.9.0";
 
   src = fetchFromGitHub {
     owner = "volatilityfoundation";
