@@ -129,15 +129,15 @@ ${B_GREEN}▶ Interactive Hardware Triage:${NC}
   • ${BOLD}Peripherals:${NC} USB hardware devices (${CYAN}lsusb${NC}) and PCI controllers.
 
 ${B_GREEN}▶ Exporting Verifiable Forensic Triage Reports (.txt):${NC}
-  • Inside ${BOLD}dfinfo${NC}, press ${YELLOW}[R]${NC} to generate a report, or pass ${CYAN}--report${NC}:
-    ${CYAN}sudo dfinfo --report${NC}
+  • Inside ${BOLD}dfinfo${NC}, press ${YELLOW}[S]${NC} to save a report, or pass ${CYAN}-s${NC} / ${CYAN}--save${NC}:
+    ${CYAN}sudo dfinfo --save${NC}
   • The report is automatically saved to ${GREEN}/media/target${NC} (or ~/Desktop).
-  • A cryptographic ${BOLD}SHA-256 hash${NC} is calculated and appended to the report.
+  • A detached ${BOLD}SHA-256 manifest${NC} (${DIM}.sha256${NC}) is written alongside the report.
 
 ${DIM}CLI Shortcuts:
-  sudo dfinfo --report               # Export report to /media/target (SHA-256)
-  sudo dfinfo --export /path/to/dir  # Export report to custom folder
-  sudo dfinfo --stdout               # Stream plain-text report directly to pipe${NC}
+  sudo dfinfo -s                     # Save report to /media/target (with .sha256)
+  sudo dfinfo -o /path/to/file.txt   # Save report to a custom file path
+  sudo dfinfo -p                     # Print plain-text report directly to stdout${NC}
 
 ════════════════════════════════════════════════════════════════════════════════
 ${B_YELLOW}3. HOW TO IMAGE DISKS (dfdisk)${NC}

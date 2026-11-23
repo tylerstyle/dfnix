@@ -266,8 +266,14 @@ run_interactive() {
                 local target_file="${custom_path:-$default_path}"
                 echo -e "${CYAN}[*] Compiling concise forensic report & computing SHA-256...${NC}"
 
+                if ! generate_report "$target_file"; then
+                    echo -e "${RED}[!] Error: Failed to save triage report to ${target_file}.${NC}" >&2
+                    read -rp "Press [Enter] to continue..." _
+                    continue
+                fi
+
                 local hash
-                hash=$(generate_report "$target_file")
+                hash=$(awk '{print $1}' "${target_file}.sha256" 2>/dev/null || echo "N/A")
                 local fsize
                 fsize=$(wc -c < "$target_file" 2>/dev/null || echo "0")
 
@@ -321,6 +327,11 @@ main() {
                 shift
                 ;;
             -o|--output)
+                if [[ $# -lt 2 || -z "$2" ]]; then
+                    echo -e "${RED}[!] Error: $1 requires a destination file path.${NC}" >&2
+                    echo "Run 'dfinfo --help' for usage." >&2
+                    exit 1
+                fi
                 save_mode=true
                 out_path="$2"
                 shift 2
