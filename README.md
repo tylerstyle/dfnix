@@ -70,7 +70,7 @@ dfnix/
 │   ├── desktop/
 │   │   ├── niri.nix                # Primary Niri + Noctalia Wayland desktop environment
 │   │   ├── xfce.nix                # Fallback XFCE4 X11 desktop environment (no automounting)
-│   │   └── display-manager.nix     # SDDM with Wayland support & autologin to Niri
+│   │   └── display-manager.nix     # Direct TTY1 autologin, Niri/XFCE session switcher and Session Chooser
 │   └── iso/
 │       └── live-iso.nix            # copytoram, zstd-19, hybrid UEFI/BIOS boot, offline docs
 ├── pkgs/
@@ -184,7 +184,7 @@ xways /media/target/sde1/Fallvorlage_21.8_SR-4/Programm/xwforensics64.exe
 
 Hardware security dongles (**Feitian Technologies Rockey4ND** and **Wibu-Systems CodeMeter**) are supported. Dongle communication is handled via a patched Wine HID library (`HidD_FlushQueue`) within an isolated mount namespace.
 
-> For the root cause analysis, PE export table patching mechanics, and mount namespace implementation, see [**`winefix.md`**](file:///home/df/git/dfnix/winefix.md).
+> For the root cause analysis, PE export table patching mechanics, and mount namespace implementation, see [**`winefix.md`**](winefix.md).
 
 ### 4. Window Management (Tiled vs. Windowed Mode)
 
@@ -316,9 +316,10 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 | :--- | :--- |
 | `F1` / `Mod+F1` | Launch **dfnix-guide** Quick Start & Keybindings (Floating Help Window) |
 | `Mod+D` | Launch **dfdisk** in Kitty (sudo) |
-| `Mod+M` | Launch **dfmount** GUI (sudo) |
+| `Mod+M` | Launch **dfmount** in Kitty (sudo) |
 | `Mod+N` | Launch **dfnet** in Kitty (sudo) |
 | `Mod+I` | Launch **dfinfo** in Kitty (sudo) |
+| `Mod+A` | Launch **dfcollect** in Kitty (sudo) |
 | `Mod+Space` | Toggle Noctalia Application Launcher |
 | `Mod+S` | Toggle Noctalia Control Center |
 | `Mod+Return` | Launch Kitty Terminal |

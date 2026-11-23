@@ -149,7 +149,7 @@ Inside X-Ways, navigating to **File -> Open Drive / Physical Device** allows exa
 Under tiling window managers, Windows applications can scatter tooltips, dialogs, and progress bars into new tiled columns. `dfnix` provides two ergonomic options:
 
 ### Option 1: Native Floating Rules (Default)
-In [`configs/niri/config.kdl`](file:///home/df/git/dfnix/configs/niri/config.kdl):
+In [`configs/niri/config.kdl`](configs/niri/config.kdl):
 ```kdl
 window-rule {
     match app-id=r#"^xwforensics.*"# title=r#"^(?!X-Ways Forensics).+"#
