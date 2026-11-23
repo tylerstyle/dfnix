@@ -2,7 +2,7 @@
 
 let
   # Build tiny mock xwforensics64.exe with mingw
-  mockExe = pkgs.pkgsCross.mingwW64.stdenv.mkDerivation {
+  mockExe = pkgs.pkgsCross.mingw-msvcrt-x86_64.stdenv.mkDerivation {
     name = "mock-xwforensics";
     dontUnpack = true;
     buildPhase = "$CC -O2 -o xwforensics64.exe ${./mock.c}";
