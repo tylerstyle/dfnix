@@ -15,8 +15,8 @@ let
   packages = flake.packages.${system};
 in
 {
-  # nix-build -A iso / vm / vmware / virtualbox
-  inherit (packages) iso vm vmware virtualbox;
+  # nix-build -A iso / iso-nvidia / vm / vmware / virtualbox
+  inherit (packages) iso iso-nvidia vm vmware virtualbox;
 
   # Complete live system closure
   system = flake.nixosConfigurations.df-forensics-iso.config.system.build.toplevel;

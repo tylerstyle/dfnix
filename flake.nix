@@ -205,6 +205,18 @@
           # Shortcut: nix build .#iso
           iso = self.nixosConfigurations.df-forensics-iso.config.system.build.isoImage;
 
+          # The same image with NVIDIA's driver and a CUDA runtime (contains
+          # unfree software): nix build .#iso-nvidia
+          iso-nvidia = self.nixosConfigurations.df-forensics-iso-nvidia.config.system.build.isoImage;
+
+          # The NVIDIA image's driver and CUDA libraries are where programs look
+          # for them (fetches unfree software; not part of `nix flake check`)
+          nvidia-runtime-check = (import ./tests/iso-variants {
+            inherit pkgs;
+            standard = self.nixosConfigurations.df-forensics-iso;
+            nvidia = self.nixosConfigurations.df-forensics-iso-nvidia;
+          }).runtime;
+
           # Fast prototyping VM shortcut: nix build .#vm
           vm = self.nixosConfigurations.df-forensics-iso.config.system.build.vm;
 
@@ -234,6 +246,11 @@
           };
           tool-smoke = import ./tests/tool-smoke { inherit pkgs; };
           xways = import ./tests/xways { inherit pkgs; };
+          iso-variants = (import ./tests/iso-variants {
+            inherit pkgs;
+            standard = self.nixosConfigurations.df-forensics-iso;
+            nvidia = self.nixosConfigurations.df-forensics-iso-nvidia;
+          }).check;
         }
       );
 
@@ -241,6 +258,9 @@
       nixosConfigurations = {
         # Bootable live forensic ISO: nix build .#iso
         df-forensics-iso = mkSystem ./profiles/live.nix [ ];
+
+        # The live ISO with NVIDIA's driver and a CUDA runtime: nix build .#iso-nvidia
+        df-forensics-iso-nvidia = mkSystem ./profiles/live-nvidia.nix [ ];
 
         # VMware Workstation / Fusion / ESXi appliance (.vmdk): nix build .#vmware
         df-forensics-vmware = mkSystem ./profiles/appliance-vmware.nix [ ];
@@ -271,6 +291,8 @@
         xfce = ./modules/desktop/xfce.nix;
         displayManager = ./modules/desktop/display-manager.nix;
         liveIso = ./modules/iso/live-iso.nix;
+        gpuQuirks = ./modules/hardware/gpu-quirks.nix;
+        nvidiaOpen = ./modules/iso/nvidia-open.nix;
         wineXways = ./modules/forensics/wine-xways.nix;
         desktopEntries = ./modules/desktop/entries.nix;
         commonGui = ./modules/desktop/common-gui.nix;
