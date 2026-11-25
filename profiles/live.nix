@@ -7,6 +7,7 @@
     (modulesPath + "/installer/cd-dvd/installation-cd-base.nix")
     ./base.nix
     ./field.nix
+    ../modules/hardware/gpu-quirks.nix
     ../modules/iso/live-iso.nix
   ];
 
