@@ -66,7 +66,7 @@ ifndef DEV
 	@exit 1
 endif
 	@echo "==> Flashing dfnix ISO onto $(DEV)..."
-	@./scripts/flash.sh $(DEV)
+	@./scripts/flash.sh "$(DEV)" $(if $(ISO),--iso "$(ISO)")
 
 check:
 	@echo "==> Running flake evaluation checks..."

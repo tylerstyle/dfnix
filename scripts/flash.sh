@@ -8,8 +8,47 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ISO_FILE="${SCRIPT_DIR}/result-iso/iso/dfnix-forensics.iso"
-TARGET_DEV="${1:-}"
-ALLOW_INTERNAL="${2:-}"
+TARGET_DEV=""
+ALLOW_INTERNAL=""
+
+usage() {
+    echo "    Usage: $0 /dev/sdX [--force] [--iso /path/to/image.iso]"
+    echo "    Without --iso the standard image is written: $ISO_FILE"
+}
+
+# The image is named, never guessed: with more than one image built, the one
+# that is written is the default above or the path given with --iso
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --iso)
+            if [ $# -lt 2 ] || [ -z "$2" ]; then
+                echo "[-] Error: --iso needs the path of an ISO image"
+                usage
+                exit 1
+            fi
+            ISO_FILE="$2"
+            shift 2
+            ;;
+        --force)
+            ALLOW_INTERNAL="--force"
+            shift
+            ;;
+        -*)
+            echo "[-] Error: unknown option '$1'"
+            usage
+            exit 1
+            ;;
+        *)
+            if [ -n "$TARGET_DEV" ]; then
+                echo "[-] Error: more than one target device given ('$TARGET_DEV', '$1')"
+                usage
+                exit 1
+            fi
+            TARGET_DEV="$1"
+            shift
+            ;;
+    esac
+done
 
 echo "========================================================"
 echo "          dfnix Forensic ISO Flash Tool                "
@@ -17,7 +56,7 @@ echo "========================================================"
 
 if [ -z "$TARGET_DEV" ]; then
     echo "[-] Error: No target device specified!"
-    echo "    Usage: $0 /dev/sdX [--force]"
+    usage
     echo ""
     echo "[*] Detected removable/USB block devices:"
     lsblk -d -o NAME,SIZE,TYPE,VENDOR,MODEL,TRAN,RM 2>/dev/null || true
@@ -26,7 +65,7 @@ fi
 
 if [ ! -f "$ISO_FILE" ]; then
     echo "[-] Error: ISO image not found at: $ISO_FILE"
-    echo "    Please run 'make iso' first."
+    echo "    Build it first ('make iso'), or name another image with --iso."
     exit 1
 fi
 
@@ -77,11 +116,19 @@ IS_USB=$(lsblk -d -no TRAN "$ROOT_DISK" 2>/dev/null || true)
 IS_RM=$(lsblk -d -no RM "$ROOT_DISK" 2>/dev/null || true)
 if [[ "$IS_USB" != "usb" && "$IS_RM" != "1" && "$ALLOW_INTERNAL" != "--force" ]]; then
     echo "[-] SAFETY REFUSAL: '$ROOT_DISK' does not appear to be a removable USB drive (TRAN=${IS_USB:-none}, RM=${IS_RM:-0})."
-    echo "    To override on internal/fixed media, pass --force as the second argument."
+    echo "    To override on internal/fixed media, pass --force."
     exit 1
 fi
 
-echo "[+] Source ISO : $ISO_FILE ($(du -h "$ISO_FILE" | cut -f1))"
+# Which image this is, by its file name (the build names the images apart)
+case "$(basename "$(readlink -f "$ISO_FILE")")" in
+    *-nvidia.iso) ISO_VARIANT="NVIDIA (unfree NVIDIA userspace and CUDA libraries)" ;;
+    dfnix-forensics.iso) ISO_VARIANT="standard" ;;
+    *) ISO_VARIANT="unknown (not a dfnix image name)" ;;
+esac
+
+echo "[+] Source ISO : $ISO_FILE ($(du -hL "$ISO_FILE" | cut -f1))"
+echo "[+] Variant    : $ISO_VARIANT"
 echo "[+] Target Drive:"
 lsblk -o NAME,SIZE,TYPE,VENDOR,MODEL,TRAN,MOUNTPOINTS "$ROOT_DISK"
 echo ""
