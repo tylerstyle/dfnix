@@ -165,11 +165,12 @@ pkgs.testers.runNixOSTest {
 
     hardware.graphics.enable = true;
 
-    # Exercise the exact "Options -> No modesetting" path on defaultDesktop = "niri".
-    # vga=0x317 hands Linux a 1024x768 VESA framebuffer in direct-boot QEMU so
-    # CONFIG_DRM_SIMPLEDRM=y exposes a real /dev/dri/card0 (simple-framebuffer),
-    # matching UEFI GOP on bare metal.
-    boot.kernelParams = [ "nomodeset" "vga=0x317" ];
+    # Exercise the exact Safe Graphics kernel parameters ("nomodeset" "vga=791")
+    # on defaultDesktop = "niri" (also covering "Options -> No modesetting").
+    # vga=791 (0x317, 1024x768x16) hands Linux a VESA framebuffer on Legacy BIOS
+    # / direct-boot QEMU so CONFIG_DRM_SIMPLEDRM=y exposes a real /dev/dri/card0
+    # (simple-framebuffer), matching UEFI GOP on bare metal.
+    boot.kernelParams = [ "nomodeset" "vga=791" ];
 
     dfnix.desktop.displayManager = {
       enable = true;

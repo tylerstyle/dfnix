@@ -339,7 +339,13 @@ EOF
   dfnixSession = pkgs.writeShellScriptBin "dfnix-session" ''
     set -e
 
-    # 1. Wait for GPU KMS DRM card device (prevents early agetty race condition)
+    # 1. Wait for coldplug udev events to finish before probing DRM cards.
+    # With CONFIG_DRM_SIMPLEDRM=y, /dev/dri/card0 (simple-framebuffer) exists
+    # immediately, so checking for card* alone would not wait for i915/xe/amdgpu
+    # to finish probing and could misclassify a normal GPU as firmware-only.
+    ${config.systemd.package}/bin/udevadm settle --timeout=10 2>/dev/null || true
+
+    # Wait briefly for a DRM card device if still initializing (prevents early agetty race)
     for _ in $(seq 1 50); do
       if ls /dev/dri/card* >/dev/null 2>&1; then
         break
