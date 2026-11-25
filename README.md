@@ -52,7 +52,8 @@ dfnix/
 ├── profiles/
 │   ├── base.nix                    # Every system: write-blocking, registry, release stamp, tools, desktops
 │   ├── field.nix                   # Examiner account, MAC randomization, no NTP (live + appliances)
-│   ├── live.nix                    # Live ISO
+│   ├── live.nix                    # Live ISO (standard)
+│   ├── live-nvidia.nix             # Live ISO with NVIDIA's driver and CUDA (make iso-nvidia)
 │   ├── appliance{,-vmware,-virtualbox}.nix  # VM appliances and their OS-disk exemptions
 │   └── workstation.nix             # Persistent lab workstation (OS disk writable)
 ├── tests/cftt/                     # CFTT-style write-blocking regression test (make test-cftt)
@@ -64,7 +65,7 @@ dfnix/
 │   ├── hardware/
 │   │   ├── write-blocking.nix      # 5-Layer udev, blockdev, swap, and daemon rules
 │   │   └── protected-devices.nix   # Boot-time dfcore registry of system disks / live medium
-│   ├── release.nix                 # /etc/dfnix-release with the git revision
+│   ├── release.nix                 # /etc/dfnix-release with the git revision and the image variant
 │   ├── forensics/
 │   │   └── default.nix             # DFIR tool suites (imaging, carving, memory, network)
 │   ├── desktop/
@@ -72,7 +73,8 @@ dfnix/
 │   │   ├── xfce.nix                # Fallback XFCE4 X11 desktop environment (no automounting)
 │   │   └── display-manager.nix     # Direct TTY1 autologin, Niri/XFCE session switcher and Session Chooser
 │   └── iso/
-│       └── live-iso.nix            # copytoram, zstd-19, hybrid UEFI/BIOS boot, offline docs
+│       ├── live-iso.nix            # copytoram, zstd-19, hybrid UEFI/BIOS boot, offline docs
+│       └── nvidia-open.nix         # NVIDIA open kernel modules, driver userspace and CUDA runtime (NVIDIA ISO only)
 ├── pkgs/
 │   ├── dfinfo/                     # Forensic System Triage & Fastfetch Suite
 │   ├── dfnix-guide/                # Interactive Quick Start Guide & Cheat Sheet
@@ -211,7 +213,7 @@ Because Niri is a tiling compositor, Windows applications with numerous dialogs 
 
 `dfnix` supports two build and testing workflows:
 1. **VM Prototyping (`make vm`)**: Skips squashfs compression for rapid iteration during development.
-2. **ISO Build (`make iso`)**: Generates the bootable hybrid UEFI/BIOS ISO.
+2. **ISO Build (`make iso`, `make iso-nvidia`)**: Generates a bootable hybrid UEFI/BIOS ISO. There are two images; see [Which ISO?](#which-iso) below.
 
 ---
 
@@ -282,12 +284,34 @@ make test-headless
 
 ### 💿 3. Building & Flashing the Live ISO
 
+#### Which ISO?
+
+| | Standard ISO | NVIDIA ISO |
+|---|---|---|
+| Build | `make iso` | `make iso-nvidia` |
+| File | `result-iso/iso/dfnix-forensics.iso` | `result-iso-nvidia/iso/dfnix-forensics-nvidia.iso` |
+| Boot menu | "Forensic Acquisition OS" | "Forensic Acquisition OS, NVIDIA driver and CUDA" |
+| `/etc/dfnix-release` | `DFNIX_VARIANT=standard` | `DFNIX_VARIANT=nvidia` |
+| Graphics drivers | The kernel's own (Intel, AMD, nouveau for older NVIDIA cards) | NVIDIA's open kernel modules with NVIDIA's userspace; the kernel's own for Intel and AMD |
+| CUDA | no | CUDA 13.5 runtime, cuBLAS and NVRTC; `nvidia-smi` |
+| Unfree NVIDIA software | none | driver userspace, GSP firmware, CUDA libraries |
+| For | every machine | machines with an NVIDIA RTX 20 / GTX 16 series (Turing) or newer card, when the GPU itself is needed |
+
+**Take the standard ISO unless you need the NVIDIA GPU.** Everything forensic is the same in both: the tools, write-blocking, system-device protection, and the volume label `DFNIX_LIVE`.
+
+- The NVIDIA ISO is larger, and because the live system runs from RAM it needs correspondingly more memory.
+- NVIDIA's open kernel modules do not drive cards older than Turing (GTX 10 series and before). The NVIDIA ISO has no driver for those, since it also turns nouveau off: use the standard ISO for them.
+- On the standard ISO, NVIDIA RTX 50 series (Blackwell) and newer cards are left on the firmware's framebuffer: nouveau is kept from binding to them, because its mode setting froze the display on such cards during boot. The desktop then runs unaccelerated (XFCE). The NVIDIA ISO drives these cards with NVIDIA's driver.
+
 #### A. Build the Bootable ISO
 ```bash
 make iso
 # or, without flakes: nix-build -A iso -o result-iso
+
+make iso-nvidia
+# or, without flakes: nix-build -A iso-nvidia -o result-iso-nvidia
 ```
-*The resulting bootable hybrid ISO is written to `./result-iso/iso/dfnix-forensics.iso`.*
+*The standard image is written to `./result-iso/iso/dfnix-forensics.iso`, the NVIDIA image to `./result-iso-nvidia/iso/dfnix-forensics-nvidia.iso`. Building the NVIDIA image downloads the driver and the CUDA libraries from NVIDIA (they are not in the NixOS binary cache).*
 
 #### B. Verify Write-Blocking in QEMU
 Inside the live system:
@@ -302,10 +326,14 @@ sudo dd if=/dev/zero of=/dev/vda bs=512 count=1
 
 #### C. Flash to USB Drive
 ```bash
-make flash DEV=/dev/sdX
+make flash DEV=/dev/sdX           # the standard ISO
+make flash-nvidia DEV=/dev/sdX    # the NVIDIA ISO
+# any other image file:
+make flash DEV=/dev/sdX ISO=/path/to/image.iso
 # or manually:
-sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync oflag=direct
+sudo dd if=result-iso/iso/dfnix-forensics.iso of=/dev/sdX bs=4M status=progress conv=fsync oflag=direct
 ```
+*The flash script shows which image and which variant it is about to write before it asks for confirmation.*
 *(Replace `/dev/sdX` with your target USB drive)*
 
 ---
@@ -336,6 +364,8 @@ sudo dd if=result-iso/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync ofl
 ### Component Licenses
 - **Forensic Tool Suite** ([`dfdisk`](https://github.com/tylerstyle/dfdisk), [`dfmount`](https://github.com/tylerstyle/dfmount), [`dfnet`](https://github.com/tylerstyle/dfnet)): Maintained as standalone repositories and dual-licensed under **MIT** and **Apache-2.0**.
 - **Third-Party DFIR Packages**: Upstream packages integrated into the live distribution (such as The Sleuth Kit, Volatility 3, dwarf2json, RegRipper, Wine, Wireshark, etc.) are distributed under their respective open-source licenses (GPL, LGPL, Apache, BSD).
+- **Not open source, in both images**: device firmware from `linux-firmware` (redistributable, needed for network and storage hardware) and Volatility 3 (Volatility Software License).
+- **Not open source, in the NVIDIA image only** (`make iso-nvidia`): NVIDIA's driver userspace and GSP firmware (NVIDIA Software License, redistributable unmodified) and the CUDA runtime libraries (NVIDIA CUDA EULA, redistributable). The kernel modules of that driver are open source (MIT / GPL-2.0-or-later). cuDNN, which may not be redistributed, is in neither image.
 
 ---
 
@@ -355,5 +385,5 @@ All trademarks, product names, logos, and brands mentioned in this repository ar
 - **Linux®** is a registered trademark of Linus Torvalds. The Tux penguin was created by Larry Ewing.
 - **Ratatui** is an open-source project licensed under MIT / Apache-2.0.
 
-Their use within `dfnix` is strictly for **nominative identification, compatibility description, and hardware/software interoperability**. `dfnix` is an independent open-source project and is not affiliated with, sponsored by, authorized by, or endorsed by any of the trademark owners listed above. `dfnix` does not bundle or distribute any proprietary software, license keys, or commercial binaries.
+Their use within `dfnix` is strictly for **nominative identification, compatibility description, and hardware/software interoperability**. `dfnix` is an independent open-source project and is not affiliated with, sponsored by, authorized by, or endorsed by any of the trademark owners listed above. This repository contains no proprietary software, license keys, or commercial binaries; an image built from it contains the third-party software listed under [Component Licenses](#component-licenses), fetched from its publishers at build time.
 
