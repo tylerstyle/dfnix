@@ -1,18 +1,25 @@
 { config, lib, pkgs, ... }:
 
 {
-  # A second boot entry for servers: serial console, no graphical session
-  imports = [ ./headless.nix ];
+  # Additional boot entries: serial headless (servers) and safe graphics (nomodeset + XFCE)
+  imports = [
+    ./headless.nix
+    ./safe-graphics.nix
+  ];
 
   # ----------------------------------------------------------------------------
   # Live ISO Image Settings
   # ----------------------------------------------------------------------------
-  image.baseName = lib.mkForce "dfnix-forensics";
+  # Priority 90 overrides nixpkgs iso-image.nix (100) while allowing variant
+  # profiles (e.g. live-nvidia.nix) to override cleanly with mkForce.
+  image.baseName = lib.mkOverride 90 "dfnix-forensics";
   system.nixos.distroName = "dfnix";
   system.nixos.label = "live";
   isoImage = {
     volumeID = "DFNIX_LIVE";
-    appendToMenuLabel = " Forensic Acquisition OS (Copy-to-RAM)";
+    # mkDefault (1000) lets variant profiles set a normal-priority label (100)
+    # while specialisations (headless, safe-graphics) override via mkForce (50).
+    appendToMenuLabel = lib.mkDefault " Forensic Acquisition OS (Copy-to-RAM)";
 
     # Hybrid bootloader: boots on both modern UEFI and legacy BIOS
     makeBiosBootable = true;
