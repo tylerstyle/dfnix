@@ -38,7 +38,7 @@ jobs:
 
       - name: Validate System Image Derivations
         run: |
-          for img in iso vm vmware virtualbox; do
+          for img in iso iso-nvidia vm vmware virtualbox; do
             echo "Evaluating derivation for $img..."
             nix eval ".#packages.x86_64-linux.${img}.drvPath"
           done

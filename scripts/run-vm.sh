@@ -15,6 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 MODE="auto" # auto, iso, vm
+ISO_DIRS=(result-iso/iso result/iso) # where --iso looks; --iso-nvidia looks elsewhere
 DISPLAY_MODE="auto" # auto, gui, headless, vnc, spice
 RAM="8G"
 CPUS="4"
@@ -30,6 +31,9 @@ Usage: ./scripts/run-vm.sh [OPTIONS]
 
 Modes:
   --iso              Boot the built ISO image (result-iso/iso/*.iso)
+  --iso-nvidia       Boot the built NVIDIA ISO image (result-iso-nvidia/iso/*.iso).
+                     QEMU has no NVIDIA card: this shows the image boots and falls
+                     back, not that the NVIDIA driver works
   --vm               Boot the instant NixOS VM closure (result-vm/bin/run-*-vm)
                      (Fastest prototyping: skips squashfs compression and ISO packaging)
 
@@ -65,6 +69,11 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --iso)
             MODE="iso"
+            shift
+            ;;
+        --iso-nvidia)
+            MODE="iso"
+            ISO_DIRS=(result-iso-nvidia/iso)
             shift
             ;;
         --vm)
@@ -294,10 +303,10 @@ fi
 # ------------------------------------------------------------------------------
 # 2. Live Bootable ISO Runner (result-iso/iso/*.iso)
 # ------------------------------------------------------------------------------
-ISO_PATH=$(find result-iso/iso result/iso -name "*.iso" 2>/dev/null | head -n 1 || true)
+ISO_PATH=$(find "${ISO_DIRS[@]}" -name "*.iso" 2>/dev/null | head -n 1 || true)
 if [ -z "$ISO_PATH" ] || [ ! -f "$ISO_PATH" ]; then
-    echo "[-] Error: No ISO file found in result-iso/iso or result/iso"
-    echo "    Build it first with: make iso"
+    echo "[-] Error: No ISO file found in: ${ISO_DIRS[*]}"
+    echo "    Build it first with: make iso (or make iso-nvidia)"
     exit 1
 fi
 
