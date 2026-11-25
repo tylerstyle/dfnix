@@ -245,6 +245,7 @@
             nixosConfig = self.nixosConfigurations.df-forensics-iso;
           };
           tool-smoke = import ./tests/tool-smoke { inherit pkgs; };
+          graphics-fallback = import ./tests/graphics-fallback { inherit pkgs; };
           xways = import ./tests/xways { inherit pkgs; };
           iso-variants = (import ./tests/iso-variants {
             inherit pkgs;

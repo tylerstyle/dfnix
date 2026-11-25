@@ -64,6 +64,7 @@ dfnix/
 ├── modules/
 │   ├── hardware/
 │   │   ├── write-blocking.nix      # 5-Layer udev, blockdev, swap, and daemon rules
+│   │   ├── gpu-quirks.nix          # Keeps nouveau off NVIDIA RTX 50 series (Blackwell) and newer cards
 │   │   └── protected-devices.nix   # Boot-time dfcore registry of system disks / live medium
 │   ├── release.nix                 # /etc/dfnix-release with the git revision and the image variant
 │   ├── forensics/
@@ -74,6 +75,8 @@ dfnix/
 │   │   └── display-manager.nix     # Direct TTY1 autologin, Niri/XFCE session switcher and Session Chooser
 │   └── iso/
 │       ├── live-iso.nix            # copytoram, zstd-19, hybrid UEFI/BIOS boot, offline docs
+│       ├── headless.nix            # Boot entry for servers: serial console, no graphical session
+│       ├── safe-graphics.nix       # Boot entry "safe graphics": nomodeset, XFCE
 │       └── nvidia-open.nix         # NVIDIA open kernel modules, driver userspace and CUDA runtime (NVIDIA ISO only)
 ├── pkgs/
 │   ├── dfinfo/                     # Forensic System Triage & Fastfetch Suite
@@ -303,6 +306,10 @@ make test-headless
 - NVIDIA's open kernel modules do not drive cards older than Turing (GTX 10 series and before). The NVIDIA ISO has no driver for those, since it also turns nouveau off: use the standard ISO for them.
 - On the standard ISO, NVIDIA RTX 50 series (Blackwell) and newer cards are left on the firmware's framebuffer: nouveau is kept from binding to them, because its mode setting froze the display on such cards during boot. The desktop then runs unaccelerated (XFCE). The NVIDIA ISO drives these cards with NVIDIA's driver.
 
+**Boot entries, on both ISOs.** Besides the default entry and the headless entry (serial console), the boot menu has a **safe graphics** entry. It boots with `nomodeset` straight into XFCE on the firmware's framebuffer, without any GPU driver; on the NVIDIA ISO that includes NVIDIA's, and CUDA is not available there. Use it when the default entry shows no picture. Write-blocking and system-device protection are the same in every entry.
+
+Without that entry the session decides by itself: if no GPU driver has a connected display, or the kernel was booted with `nomodeset`, it starts XFCE instead of Niri, and it falls back to XFCE when Niri fails to start.
+
 #### A. Build the Bootable ISO
 ```bash
 make iso
@@ -363,7 +370,7 @@ sudo dd if=result-iso/iso/dfnix-forensics.iso of=/dev/sdX bs=4M status=progress 
 
 ### Component Licenses
 - **Forensic Tool Suite** ([`dfdisk`](https://github.com/tylerstyle/dfdisk), [`dfmount`](https://github.com/tylerstyle/dfmount), [`dfnet`](https://github.com/tylerstyle/dfnet)): Maintained as standalone repositories and dual-licensed under **MIT** and **Apache-2.0**.
-- **Third-Party DFIR Packages**: Upstream packages integrated into the live distribution (such as The Sleuth Kit, Volatility 3, dwarf2json, RegRipper, Wine, Wireshark, etc.) are distributed under their respective open-source licenses (GPL, LGPL, Apache, BSD).
+- **Third-Party DFIR Packages**: Upstream packages integrated into the live distribution (such as The Sleuth Kit, dwarf2json, RegRipper, Wine, Wireshark, etc.) are distributed under their respective open-source licenses (GPL, LGPL, Apache, BSD).
 - **Not open source, in both images**: device firmware from `linux-firmware` (redistributable, needed for network and storage hardware) and Volatility 3 (Volatility Software License).
 - **Not open source, in the NVIDIA image only** (`make iso-nvidia`): NVIDIA's driver userspace and GSP firmware (NVIDIA Software License, redistributable unmodified) and the CUDA runtime libraries (NVIDIA CUDA EULA, redistributable). The kernel modules of that driver are open source (MIT / GPL-2.0-or-later). cuDNN, which may not be redistributed, is in neither image.
 
@@ -383,6 +390,7 @@ All trademarks, product names, logos, and brands mentioned in this repository ar
 - **Feitian®** and **Rockey4ND®** are trademarks of FEITIAN Technologies Co., Ltd.
 - **NixOS™** is a trademark of the NixOS Foundation.
 - **Linux®** is a registered trademark of Linus Torvalds. The Tux penguin was created by Larry Ewing.
+- **NVIDIA®**, **GeForce®**, **RTX™** and **CUDA®** are trademarks or registered trademarks of NVIDIA Corporation.
 - **Ratatui** is an open-source project licensed under MIT / Apache-2.0.
 
 Their use within `dfnix` is strictly for **nominative identification, compatibility description, and hardware/software interoperability**. `dfnix` is an independent open-source project and is not affiliated with, sponsored by, authorized by, or endorsed by any of the trademark owners listed above. This repository contains no proprietary software, license keys, or commercial binaries; an image built from it contains the third-party software listed under [Component Licenses](#component-licenses), fetched from its publishers at build time.

@@ -15,10 +15,20 @@ let
   hasCuda = c: lib.any (lib.hasPrefix "cuda") (names c) || c.environment.variables ? CUDA_PATH;
   release = c: c.environment.etc."dfnix-release".text;
 
-  # A boot entry of the NVIDIA image that turns the driver off (Safe Graphics)
-  # must be the standard image as far as the GPU goes: the nouveau block for
-  # Blackwell cards back on, no NVIDIA driver, no CUDA
-  safe = n.specialisation.safe-graphics.configuration or null;
+  # The Safe Graphics boot entry, on either image: no mode setting, a VESA
+  # mode for legacy BIOS (which hands over no framebuffer by itself), XFCE.
+  # On the NVIDIA image it must be the standard image as far as the GPU goes:
+  # the nouveau block for Blackwell cards back on, no NVIDIA driver, no CUDA
+  safeOf = c: c.specialisation.safe-graphics.configuration;
+  safeFacts = image: c:
+    let safe = safeOf c; in [
+      { ok = lib.elem "nomodeset" safe.boot.kernelParams && lib.elem "vga=791" safe.boot.kernelParams; msg = "Safe Graphics on the ${image} image boots with nomodeset and vga=791"; }
+      { ok = safe.dfnix.desktop.displayManager.defaultDesktop == "xfce"; msg = "Safe Graphics on the ${image} image starts XFCE"; }
+      { ok = safe.isoImage.appendToMenuLabel != c.isoImage.appendToMenuLabel && lib.hasInfix "safe graphics" safe.isoImage.appendToMenuLabel; msg = "Safe Graphics on the ${image} image says so in the boot menu"; }
+      { ok = !safe.hardware.nvidia.enabled && !(hasCuda safe); msg = "Safe Graphics on the ${image} image has neither NVIDIA's driver nor CUDA"; }
+      { ok = safe.dfnix.hardware.blockBlackwellNouveau; msg = "Safe Graphics on the ${image} image keeps nouveau off Blackwell cards"; }
+      { ok = safe.isoImage.volumeID == "DFNIX_LIVE"; msg = "Safe Graphics on the ${image} image keeps the volume label DFNIX_LIVE"; }
+    ];
 
   facts = [
     # Same medium label: system-device protection and scripts/flash.sh know the
@@ -39,10 +49,7 @@ let
     { ok = hasCuda n && !(lib.any (lib.hasInfix "cudnn") (names n)); msg = "the NVIDIA image has the CUDA runtime and no cuDNN"; }
     { ok = !n.dfnix.hardware.blockBlackwellNouveau; msg = "the NVIDIA image does not set the Blackwell driver_override"; }
     { ok = lib.elem "nouveau" n.boot.blacklistedKernelModules; msg = "the NVIDIA image blacklists nouveau"; }
-  ] ++ lib.optionals (safe != null) [
-    { ok = !safe.hardware.nvidia.enabled && !(hasCuda safe); msg = "Safe Graphics on the NVIDIA image has neither NVIDIA's driver nor CUDA"; }
-    { ok = safe.dfnix.hardware.blockBlackwellNouveau; msg = "Safe Graphics on the NVIDIA image keeps nouveau off Blackwell cards"; }
-  ];
+  ] ++ safeFacts "standard" s ++ safeFacts "NVIDIA" n;
 
   failed = map (f: f.msg) (lib.filter (f: !f.ok) facts);
 in

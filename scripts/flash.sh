@@ -33,6 +33,10 @@ while [ $# -gt 0 ]; do
             ALLOW_INTERNAL="--force"
             shift
             ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
         -*)
             echo "[-] Error: unknown option '$1'"
             usage
