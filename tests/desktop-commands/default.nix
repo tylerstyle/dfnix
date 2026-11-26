@@ -37,6 +37,7 @@ let
     "lsblk" = sysPkgs.util-linux;
     "xways" = "xways";
     "guymager-root" = "guymager-root";
+    "gparted-root" = "gparted-root";
     "xwayland-satellite" = sysPkgs.xwayland-satellite;
 
     # Pinned desktop items that ship inside regular packages:

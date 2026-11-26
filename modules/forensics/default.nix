@@ -54,6 +54,25 @@ let
       exec sudo DISPLAY="''${DISPLAY:-:0}" QT_QPA_PLATFORM=xcb ${pkgs.guymager}/bin/guymager "$@"
     '';
   };
+
+  # gparted changes partition tables, so it runs as root, like guymager. Write
+  # blocking stays as it is: gparted can only change a drive that was unblocked
+  # as a target.
+  gparted-root = pkgs.writeShellApplication {
+    name = "gparted-root";
+    runtimeInputs = [ pkgs.gparted ];
+    text = ''
+      if [[ "''${1:-}" == "-h" || "''${1:-}" == "--help" ]]; then
+        echo "usage: gparted-root [device ...]"
+        echo "Starts GParted as root on the current display."
+        exit 0
+      fi
+      if [[ $EUID -eq 0 ]]; then
+        exec gparted "$@"
+      fi
+      exec sudo DISPLAY="''${DISPLAY:-:0}" GDK_BACKEND=x11 ${pkgs.gparted}/bin/gparted "$@"
+    '';
+  };
 in
 {
   options.dfnix.forensics = {
@@ -110,6 +129,12 @@ in
       ddrescueview            # Graphical viewer for ddrescue mapfiles
       afflib                  # Advanced Forensics Format utilities
       qemu-utils              # qemu-nbd for mounting virtual disk images (.vmdk, .qcow2, .vhd)
+      partclone               # Images of used blocks only, per file system
+      multipath-tools         # kpartx (partition maps incl. Apple, from images) and multipath
+      bchunk                  # CD images: .bin/.cue to .iso
+      ccd2iso                 # CloneCD images to .iso
+      nrg2iso                 # Nero images to .iso
+      mdf2iso                 # Alcohol 120% images to .iso
 
       # ------------------------------------------------------------------------
       # Hashing & Integrity
@@ -146,6 +171,19 @@ in
       xfsprogs                # XFS utilities
       dosfstools              # FAT utilities
       exfatprogs              # ExFAT utilities
+      hfsprogs                # HFS+ check and info (fsck.hfsplus)
+      udftools                # UDF (udfinfo, udflabel, pktsetup)
+      nilfs-utils             # NILFS2 utilities and checkpoints
+      jfsutils                # JFS utilities
+      erofs-utils             # EROFS (dump.erofs, fsck.erofs, erofsfuse)
+      squashfsTools           # unsquashfs, mksquashfs
+      squashfuse              # Mount squashfs images without root
+      bcachefs-tools          # bcachefs check, dump and show-super
+      wimlib                  # Windows imaging files (.wim, .esd): list, extract, mount
+      gocryptfs               # Encrypted directories (gocryptfs)
+      fscrypt                 # ext4/f2fs native encryption (fscrypt)
+      tpm2-tools              # TPM 2.0: sealed keys of a running system
+      clevis                  # LUKS volumes bound to TPM or Tang
 
       # ------------------------------------------------------------------------
       # Memory Forensics
@@ -232,6 +270,18 @@ in
       sdparm                  # SCSI/SAS disk parameter inspection
       sg3_utils               # Low-level SCSI generic command sender
       lsscsi                  # List SCSI/SATA/SAS bus topologies
+      openseachest            # Seagate openSeaChest: SATA/SAS/NVMe info, SMART, logs
+      gsmartcontrol           # Graphical SMART viewer
+      blktrace                # Trace block I/O (e.g. show that no write reaches a blocked device)
+      uhubctl                 # Switch power of USB hub ports (hung devices)
+      ltfs                    # LTFS tapes: ltfs (mount; evidence: write-protect tab and `-o ro`), ltfsck, mkltfs
+      mt-st                   # Tape drive control (mt)
+      mtx                     # Tape changer control
+      stenc                   # LTO tape drive encryption settings
+      mbuffer                 # Buffered streaming to and from tape
+      nwipe                   # Wipe target drives before use
+      fio                     # Test a target drive's throughput and integrity
+      ioping                  # Storage latency
 
       # ------------------------------------------------------------------------
       # Mobile & Firmware
@@ -248,10 +298,31 @@ in
       # ------------------------------------------------------------------------
       smartmontools           # SMART disk health inspection
       parted                  # Partition editor
+      gparted                 # Graphical partition editor (`gparted-root`)
+      gparted-root            # Starts GParted as root on the session's display
+      # Takes the place of gparted's own menu entry, which starts it through pkexec
+      (hiPrio (makeDesktopItem {
+        name = "gparted";
+        desktopName = "GParted";
+        genericName = "Partition Editor";
+        comment = "View and edit partition tables of target drives (runs as root)";
+        exec = "gparted-root";
+        icon = "gparted";
+        categories = [ "System" "Utility" ];
+        keywords = [ "partition" "disk" "gparted" "format" ];
+      }))
+      gpart                   # Guess lost partition tables
+      fatresize               # Resize FAT16/FAT32
       gptfdisk                # GPT partition editor
       pciutils                # lspci
       usbutils                # lsusb
       dmidecode               # Hardware DMI/SMBIOS decoder
+      lshw                    # Hardware listing with bus and storage topology
+      hwinfo                  # Detailed hardware probe
+      sysstat                 # iostat, sar, pidstat
+      iotop                   # I/O per process
+      ncdu                    # Disk usage browser
+      tree                    # Directory trees
       dfinfo                  # Forensic system triage & fastfetch report exporter
       lsof                    # List open files
       file                    # File magic type identification

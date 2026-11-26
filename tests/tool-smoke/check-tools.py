@@ -67,6 +67,18 @@ SKIP_LIST = {
     "mariadb-client/mariadb-secure-installation": "Interactive MySQL server setup wizard; ignores --help and prompts for password.",
     "mariadb-client/mysql_secure_installation": "Interactive MySQL server setup wizard; ignores --help and prompts for password.",
     "mariadb-client/mytop": "MariaDB client Perl script with upstream Nixpkgs wrapper missing Perl in PATH.",
+
+    # Storage tools: launchers and helper scripts that need what the check's
+    # environment does not have. The programs themselves are checked.
+    "gparted/gparted": "Launcher script; calls pkexec when not root. On the ISO it is started as root by gparted-root.",
+    "gsmartcontrol/gsmartcontrol-root": "Launcher script; needs a display and a su/pkexec front end.",
+    "clevis/clevis-decrypt-tpm2": "Shell script; calls tpm2-tools from PATH, which the ISO has and this check's PATH does not.",
+    "clevis/clevis-encrypt-tpm2": "Shell script; calls tpm2-tools from PATH, which the ISO has and this check's PATH does not.",
+    "blktrace/blktrace": "Crashes after printing its usage in the build sandbox; prints usage and exits 0 on a normal system.",
+    "blktrace/bno_plot.py": "Upstream plot helper with '#! /usr/bin/env python' and gnuplot; not packaged to run.",
+    "fio/fiologparser_hist.py": "Upstream log post-processing helper; needs numpy and pandas.",
+    "fio/genfio": "Upstream job-file generator with '#!/bin/bash', which NixOS does not have.",
+    "hwinfo/convert_hd": "Upstream developer helper; needs Perl XML::Writer.",
 }
 
 

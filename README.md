@@ -139,15 +139,16 @@ dfnix/
 
 | Category | Tools Included |
 | :--- | :--- |
-| **Disk Acquisition & Imaging** | `dfdisk`, `dfmount`, `xways` (Wine launcher), `libewf` (`ewfacquire`, `ewfexport`), `dcfldd`, `ddrescue`, `ddrescueview`, `afflib`, `qemu-utils` (`qemu-nbd`) |
+| **Disk Acquisition & Imaging** | `dfdisk`, `dfmount`, `xways` (Wine launcher), `libewf` (`ewfacquire`, `ewfexport`), `dcfldd`, `ddrescue`, `ddrescueview`, `afflib`, `qemu-utils` (`qemu-nbd`), `partclone`, `multipath-tools` (`kpartx`), `bchunk`, `ccd2iso`, `nrg2iso`, `mdf2iso` |
 | **Filesystem & File Carving** | `sleuthkit` (TSK), `testdisk`, `testdisk-qt`, `foremost`, `scalpel`, `bulk_extractor`, `ext4magic`, `extundelete` |
-| **Decryption & Filesystems** | `cryptsetup` (LUKS), `dislocker` (BitLocker), `libbde`, `veracrypt`, `apfs-fuse`, `apfsprogs`, `ntfs3g`, `btrfs-progs`, `xfsprogs` |
+| **Decryption & Filesystems** | `cryptsetup` (LUKS), `dislocker` (BitLocker), `libbde`, `veracrypt`, `apfs-fuse`, `apfsprogs`, `ntfs3g`, `btrfs-progs`, `xfsprogs`, `hfsprogs`, `udftools`, `nilfs-utils`, `jfsutils`, `erofs-utils`, `squashfsTools`, `squashfuse`, `bcachefs-tools`, `wimlib`, `gocryptfs`, `fscrypt`, `tpm2-tools`, `clevis` |
 | **Memory Forensics** | `volatility3`, `dwarf2json` |
 | **Registry & Artifacts** | `regripper` (rip.pl), `chainsaw` (EVTX), `python3Packages.evtx`, `sqlitebrowser` |
 | **Network & Acquisition** | `dfnet`, `dfcollect`, `dfkit`, `macchanger`, `wireshark`, `tshark`, `tcpdump`, `zeek`, `cifs-utils`, `nfs-utils`, `sshfs`, `rclone` |
-| **Optical Media & Hardware** | `dvdplusrwtools`, `cdrtools`, `safecopy`, `f3`, `nvme-cli`, `hdparm`, `sdparm`, `sg3_utils`, `lsscsi` |
+| **Optical Media & Hardware** | `dvdplusrwtools`, `cdrtools`, `safecopy`, `f3`, `nvme-cli`, `hdparm`, `sdparm`, `sg3_utils`, `lsscsi`, `openseachest`, `gsmartcontrol`, `blktrace`, `uhubctl`, `nwipe`, `fio`, `ioping` |
+| **Tape** | `ltfs` (`ltfs`, `ltfsck`, `mkltfs`; LTFS reference implementation), `mt-st`, `mtx`, `stenc`, `mbuffer`. Write blocking does not cover tape drives: set the cartridge's write-protect tab and mount LTFS with `-o ro` |
 | **Mobile & Firmware** | `binwalk`, `android-tools` (ADB/Fastboot), `libimobiledevice` |
-| **Hardware & Triage** | `smartmontools`, `parted`, `gptfdisk`, `pciutils`, `usbutils`, `btop`, `yazi`, `fastfetch` |
+| **Hardware & Triage** | `smartmontools`, `parted`, `gparted` (`gparted-root`), `gpart`, `fatresize`, `gptfdisk`, `lshw`, `hwinfo`, `sysstat`, `iotop`, `ncdu`, `tree`, `pciutils`, `usbutils`, `btop`, `yazi`, `fastfetch` |
 
 ---
 
