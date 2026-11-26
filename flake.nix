@@ -130,6 +130,8 @@
         };
         winpmem = final.callPackage ./pkgs/winpmem { };
         fuji = final.callPackage ./pkgs/fuji { };
+        # LTFS for stand-alone LTO tape drives (not in nixpkgs)
+        ltfs = final.callPackage ./pkgs/ltfs { };
         fieldkit = final.callPackage ./pkgs/fieldkit { };
 
         # Upstream avml flaky timing test (upload::stream::tests::higher_concurrency_allows_overlap)
@@ -199,6 +201,7 @@
             velociraptor-windows-arm64
             winpmem
             fuji
+            ltfs
             fieldkit
             ;
 

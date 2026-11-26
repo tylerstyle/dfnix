@@ -52,7 +52,7 @@ jobs:
             dfcore dfdisk dfmount dfnet dfcollect dfkit \
             dfinfo dfnix-guide dfnix-session-chooser \
             dwarf2json regripper libvshadow libfsapfs libfvde \
-            uac uac-kit velociraptor winpmem fuji fieldkit; do
+            uac uac-kit velociraptor winpmem fuji ltfs fieldkit; do
             echo "Evaluating derivation for $pkg..."
             nix eval ".#packages.x86_64-linux.${pkg}.drvPath"
           done
